@@ -950,3 +950,6 @@ body {
 .clear-all:hover {
     background: #333333;
 }
+.asset-toolbar{
+    display: none;
+}
