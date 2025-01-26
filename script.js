@@ -131,7 +131,21 @@ async function loadPDFFromBlob(blob) {
     document.body.style.cursor = "default";
   }
 }
-
+// Function to handle responsive PDF rendering
+function handleResponsivePDF() {
+  const container = document.getElementById('pagesContainer');
+  const containerWidth = container.clientWidth - 40; // Account for padding
+  const defaultScale = 1;
+  
+  if (!currentPDF) return defaultScale;
+  
+  // Get the first page to calculate scale
+  return currentPDF.getPage(1).then(page => {
+      const viewport = page.getViewport({ scale: defaultScale });
+      const scaleRequired = containerWidth / viewport.width;
+      return Math.min(scaleRequired, 2); // Cap maximum scale at 2
+  });
+}
 // Function to render a specific page of the PDF
 async function renderPage(pageNumber) {
   try {
@@ -142,6 +156,7 @@ async function renderPage(pageNumber) {
 
     console.log(`Rendering page ${pageNumber}`);
     const page = await currentPDF.getPage(pageNumber);
+    const scale = await handleResponsivePDF();
     const viewport = page.getViewport({ scale });
     
     // Create page wrapper
@@ -1888,12 +1903,16 @@ function fitToWidth() {
 fitWidthBtn.addEventListener('click', fitToWidth);
 
 // Window resize handler for fit to width
+// Function to handle window resize
 let resizeTimeout;
 window.addEventListener('resize', () => {
-    if (previewModal.style.display === "block") {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(fitToWidth, 100);
-    }
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(async () => {
+        const scale = await handleResponsivePDF();
+        updatePDFDisplay(scale);
+    }, 250);
+
+    
 });
 
 // Function to position the format toolbar near text annotation
