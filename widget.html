@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Editor</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="toolbar">
+          
+            <div class="tools">
+                <button id="undoBtn" class="tool-btn" disabled><i class="fas fa-undo"></i> <span class="undo-text">Undo</span> </button>
+                <button id="redoBtn" class="tool-btn" disabled><i class="fas fa-redo"></i><span class="redo-text"> Redo</span> </button>
+                <button id="textTool" class="tool-btn"><i class="fas fa-font"></i> <span class="text-text">Add Text</span></button>
+                <button id="signatureTool" class="tool-btn"><i class="fas fa-signature"></i> <span class="signature-text">Add Signature</span></button>
+                <button id="tickmarkTool" class="tool-btn"><i class="fas fa-check"></i> <span class="tickmark-text">Add Tick Mark </span></button>
+                <button id="roundTool" class="tool-btn"><i class="far fa-circle"></i> <span class="round-text">Add Circle</span></button>
+                <button id="crossTool" class="tool-btn"><i class="fas fa-times"></i> <span class="cross-text">Add Cross</span></button>
+                <button id="rectangleTool" class="tool-btn"><i class="far fa-square"></i> <span class="rectangle-text">Add Rectangle</span></button>
+                <button id="imageTool" class="tool-btn"><i class="fas fa-image"></i> <span class="image-text"> Add Image</span></button>
+                <button id="previewPDF" class="tool-btn"><i class="fas fa-eye"></i> <span class="preview-text">Preview</span></button>
+                <button id="savePDF" class="tool-btn"><i class="fas fa-save"></i> <span class="save-text">Save PDF </span></button>
+                <button id="fetchAndLoadPDF" class="tool-btn success"><i class="fa-solid fa-rotate-right"></i><span class="fetch-text">Fetch and Reload PDF</span></button>
+            </div>
+        </div>
+
+        <div id="pagesContainer" class="pages-container">
+        </div>
+        <div class="asset-toolbar">
+            <div class="asset-title">Quick Assets</div>
+            <div class="asset-items">
+                <div class="asset-item" draggable="true" data-type="image" data-src="https://workdrive.zohopublic.in/external/5e806d330b2719aa694bcb98a7f919fdf84228b74b79ed9fd94441af861d114b/download?directDownload=True">
+                    <img src="https://workdrive.zohopublic.in/external/5e806d330b2719aa694bcb98a7f919fdf84228b74b79ed9fd94441af861d114b/download?directDownload=True" alt="Image 1" title="Drag to add image">
+                </div>
+                <div class="asset-item" draggable="true" data-type="image" data-src="./assets/signature.png">
+                    <img src="./assets/signature.png" alt="Image 2" title="Drag to add image">
+                </div>
+            </div>
+        </div>
+        <div id="textFormatToolbar" class="format-toolbar" style="display: none;">
+            <select id="fontFamily" class="format-select">
+                <option value="Arial">Arial</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Verdana">Verdana</option>
+            </select>
+            <select id="fontSize" class="format-select">
+                <option value="12">12px</option>
+                <option value="14">14px</option>
+                <option value="16">16px</option>
+                <option value="18">18px</option>
+                <option value="20">20px</option>
+                <option value="24">24px</option>
+                <option value="28">28px</option>
+                <option value="32">32px</option>
+            </select>
+            <div class="format-buttons">
+                <button id="boldText" class="format-btn" title="Bold">
+                    <i class="fas fa-bold"></i>
+                </button>
+                <button id="italicText" class="format-btn" title="Italic">
+                    <i class="fas fa-italic"></i>
+                </button>
+                <button id="underlineText" class="format-btn" title="Underline">
+                    <i class="fas fa-underline"></i>
+                </button>
+                <input type="color" id="textColor" class="color-picker" value="#000000" title="Text Color">
+            </div>
+        </div>
+
+     
+    </div>
+    <div id="signatureModal" class="modal">
+        <div class="modal-content">
+            <canvas id="signatureCanvas"></canvas>
+            <div class="signature-tools">
+                <button id="clearSignature">Clear</button>
+                <button id="saveSignature">Save</button>
+                <button id="closeSignature">Close</button>
+            </div>
+        </div>
+    </div>
+    <div id="imageModal" class="modal">
+        <div class="modal-content">
+            <h3>Upload Image</h3>
+            <div class="image-upload-container">
+                <input type="file" id="imageFile" accept="image/*" />
+                <div class="image-preview-container">
+                    <img id="imagePreview" src="" alt="Preview" style="display: none;" />
+                </div>
+            </div>
+            <div class="image-tools">
+                <button id="uploadImage">Upload</button>
+                <button id="closeImage">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div id="previewModal" class="modal">
+        <div class="modal-content preview-modal">
+            <div class="preview-header">
+                <h3>Preview PDF</h3>
+                <button id="closePreview" class="close-btn">&times;</button>
+            </div>
+            <div id="previewContainer" class="preview-container"></div>
+            <div class="preview-controls">
+                <button id="zoomOut" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+                <span class="zoom-level">100%</span>
+                <button id="zoomIn" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+                <button id="fitWidth" title="Fit to Width"><i class="fas fa-arrows-alt-h"></i></button>
+            </div>
+        </div>
+    </div>
+    <div id="notification" class="notification" style="display: none;"></div>
+    <script src="script.js"></script>
+</body>
+</html>
