@@ -69,9 +69,12 @@ window.jsPDF = window.jspdf.jsPDF;
 
 // Initialize canvas contexts
 const signatureCtx = signatureCanvas.getContext("2d");
+const freaze = document.getElementById("freaze");
 
 // Function to download a certificate from a third-party server
+
 async function downloadCertificate() {
+    freaze.style.display = "flex";
   try {
     console.log('Starting PDF download');
     const response = await fetch("https://mcb.medicalcertificate.in/getcustomcertificate/159919000002190148", {
@@ -130,6 +133,7 @@ async function loadPDFFromBlob(blob) {
     console.error("Error loading PDF:", error);
     document.body.style.cursor = "default";
   }
+  freaze.style.display = "none";
 }
 // Function to handle responsive PDF rendering
 function handleResponsivePDF() {
@@ -193,6 +197,7 @@ async function renderPage(pageNumber) {
             const rect = annotationLayerDiv.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
+console.log(x,y);
 
             if (currentTool === "text") {
               addTextAnnotation(x, y, pageNumber);
@@ -265,12 +270,15 @@ async function renderPage(pageNumber) {
 function addTextAnnotation(x, y, pageNumber) {
     const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
     if (!annotationLayerDiv) return;
-
+    const maincontainer = document.createElement('div');
+    maincontainer.className = 'annotation maindiv';
+    maincontainer.style.left = `${x}px`;
+    maincontainer.style.top = `${y}px`;
     const container = document.createElement('div');
     container.className = 'annotation text-annotation';
     container.contentEditable = true;
-    container.style.left = `${x}px`;
-    container.style.top = `${y}px`;
+    // container.style.left = `${x}px`;
+    // container.style.top = `${y}px`;
     container.style.fontFamily = fontFamilySelect.value;
     container.style.fontSize = `${fontSizeSelect.value}px`;
     container.style.color = colorPicker.value;
@@ -282,34 +290,54 @@ function addTextAnnotation(x, y, pageNumber) {
     const deleteBtn = createDeleteButton();
     deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        deleteAnnotation(container);
+        deleteAnnotation(maincontainer);
     });
     deleteWrapper.appendChild(deleteBtn);
-    container.appendChild(deleteWrapper);
+  
     
     // Select all text when first clicked
     let isFirstClick = true;
     container.addEventListener('click', () => {
-        if (isFirstClick && container.firstChild) {
+      container.focus()
+        if (isFirstClick  || container.innerText==="Click to edit text" && container.firstChild) {
             const selection = window.getSelection();
             const range = document.createRange();
             try {
+              container.innerText='';
                 // Only select the text content, not including the delete wrapper
                 const textNode = container.firstChild;
-                range.selectNodeContents(textNode);
-                selection.removeAllRanges();
-                selection.addRange(range);
+                // range.selectNodeContents(textNode);
+                // selection.removeAllRanges();
+                // selection.addRange(range);
             } catch (error) {
                 console.error('Error setting text selection:', error);
             }
             isFirstClick = false;
         }
     });
+    container.addEventListener('keydown', () => {
+      if (isFirstClick || container.innerText==="Click to edit text" && container.firstChild ) {
+          const selection = window.getSelection();
+          const range = document.createRange();
+          try {
+            container.innerText='';
+              // Only select the text content, not including the delete wrapper
+              const textNode = container.firstChild;
+              // range.selectNodeContents(textNode);
+              // selection.removeAllRanges();
+              // selection.addRange(range);
+          } catch (error) {
+              console.error('Error setting text selection:', error);
+          }
+          isFirstClick = false;
+      }
+  });
     
     // Text formatting event handlers
     container.addEventListener('focus', () => {
         activeTextAnnotation = container;
         textFormatToolbar.style.display = 'flex';
+        deleteBtn.style.opacity=1;
         positionFormatToolbar(container);
         updateToolbarState(container);
     });
@@ -318,12 +346,13 @@ function addTextAnnotation(x, y, pageNumber) {
         // Don't hide if clicking format toolbar
         if (!e.relatedTarget || !textFormatToolbar.contains(e.relatedTarget)) {
             textFormatToolbar.style.display = 'none';
+            deleteBtn.style.opacity=0;
             if (container.textContent.trim() === '') {
                 container.innerHTML = 'Click to edit text';
-                const deleteWrapper = document.createElement('div');
-                deleteWrapper.className = 'delete-wrapper';
-                deleteWrapper.appendChild(createDeleteButton());
-                container.appendChild(deleteWrapper);
+                // const deleteWrapper = document.createElement('div');
+                // deleteWrapper.className = 'delete-wrapper';
+                // deleteWrapper.appendChild(createDeleteButton());
+                // container.appendChild(deleteWrapper);
             }
             activeTextAnnotation = null;
         }
@@ -340,38 +369,72 @@ function addTextAnnotation(x, y, pageNumber) {
         }
     });
     
-    // Make text draggable but allow text selection
-    let isDragging = false;
-    let startX, startY;
-    
-    container.addEventListener('mousedown', (e) => {
-        if (e.target === container) {
-            isDragging = true;
-            startX = e.clientX - container.offsetLeft;
-            startY = e.clientY - container.offsetTop;
-        }
-    });
-    
-    document.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            container.style.left = `${e.clientX - startX}px`;
-            container.style.top = `${e.clientY - startY}px`;
-        }
-    });
-    
-    document.addEventListener('mouseup', () => {
-        if (isDragging) {
-            isDragging = false;
-            saveState();
-        }
-    });
-    
-    annotationLayerDiv.appendChild(container);
-    container.focus();
-    saveState();
-    currentTool = null;
-    textTool.classList.remove("active");
-    return container;
+    container.addEventListener('input', saveState);
+  // Prevent unwanted clicks from propagating
+  container.addEventListener('mousedown', (e) => e.stopPropagation());
+  ////////////////drag
+  let isDragging = false;
+  let isTouchEditing = false;
+  let startX, startY, touchTimeout;
+
+  function startDrag(e) {
+      if (e.target === container) {
+          // Delay drag to detect single tap for editing
+          isTouchEditing = true;
+          touchTimeout = setTimeout(() => {
+              isDragging = true;
+              isTouchEditing = false;
+              const touch = e.touches ? e.touches[0] : e;
+              startX = touch.clientX - maincontainer.offsetLeft;
+              startY = touch.clientY - maincontainer.offsetTop;
+          }, 200); // 200ms delay to differentiate tap from drag
+      }
+      e.preventDefault();
+  }
+
+  function moveDrag(e) {
+      if (!isDragging) return;
+      isTouchEditing = false; // Cancel text editing on move
+      const touch = e.touches ? e.touches[0] : e;
+      let newX = touch.clientX - startX;
+      let newY = touch.clientY - startY;
+      const annotationLayerRect = annotationLayerDiv.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      if (newX < 0) newX = 0;
+      if (newY < 0) newY = 0;
+      if (newX + containerRect.width > annotationLayerRect.width)
+          newX = annotationLayerRect.width - containerRect.width;
+      if (newY + containerRect.height > annotationLayerRect.height)
+          newY = annotationLayerRect.height - containerRect.height;
+      maincontainer.style.left = `${newX}px`;
+      maincontainer.style.top = `${newY}px`;
+  }
+
+  function stopDrag(e) {
+      if (isTouchEditing) {
+          clearTimeout(touchTimeout);
+          container.focus(); // Enable text editing on tap
+          isTouchEditing = false;
+      }
+      isDragging = false;
+      saveState();
+  }
+
+  // Add event listeners for both mouse and touch
+  container.addEventListener('mousedown', startDrag);
+  document.addEventListener('mousemove', moveDrag);
+  document.addEventListener('mouseup', stopDrag);
+  container.addEventListener('touchstart', startDrag, { passive: false });
+  document.addEventListener('touchmove', moveDrag, { passive: false });
+  document.addEventListener('touchend', stopDrag);
+  maincontainer.appendChild(container);
+  maincontainer.appendChild(deleteWrapper);
+  annotationLayerDiv.appendChild(maincontainer);
+  container.focus();
+  saveState();
+  currentTool = null;
+  textTool.classList.remove("active");
+  return maincontainer;
 }
 
 // Function to add tick mark annotation
@@ -667,115 +730,115 @@ function makeResizable(element) {
 }
 
 // Function to add text annotation
-function addTextAnnotation(x, y, pageNumber) {
-    const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
-    const container = document.createElement('div');
-    container.className = 'annotation text-annotation';
-    container.contentEditable = true;
-    container.style.left = `${x}px`;
-    container.style.top = `${y}px`;
-    container.style.fontFamily = fontFamilySelect.value;
-    container.style.fontSize = `${fontSizeSelect.value}px`;
-    container.style.color = colorPicker.value;
-    container.innerHTML = 'Click to edit text';
+// function addTextAnnotation(x, y, pageNumber) {
+//     const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
+//     const container = document.createElement('div');
+//     container.className = 'annotation text-annotation';
+//     container.contentEditable = true;
+//     container.style.left = `${x}px`;
+//     container.style.top = `${y}px`;
+//     container.style.fontFamily = fontFamilySelect.value;
+//     container.style.fontSize = `${fontSizeSelect.value}px`;
+//     container.style.color = colorPicker.value;
+//     container.innerHTML = 'Click to edit text';
     
-    // Create delete button wrapper to prevent contentEditable
-    const deleteWrapper = document.createElement('div');
-    deleteWrapper.className = 'delete-wrapper';
-    const deleteBtn = createDeleteButton();
-    deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteAnnotation(container);
-    });
-    deleteWrapper.appendChild(deleteBtn);
-    container.appendChild(deleteWrapper);
+//     // Create delete button wrapper to prevent contentEditable
+//     const deleteWrapper = document.createElement('div');
+//     deleteWrapper.className = 'delete-wrapper';
+//     const deleteBtn = createDeleteButton();
+//     deleteBtn.addEventListener('click', (e) => {
+//         e.stopPropagation();
+//         deleteAnnotation(container);
+//     });
+//     deleteWrapper.appendChild(deleteBtn);
+//     container.appendChild(deleteWrapper);
     
-    // Select all text when first clicked
-    let isFirstClick = true;
-    container.addEventListener('click', () => {
-        if (isFirstClick && container.firstChild) {
-            const selection = window.getSelection();
-            const range = document.createRange();
-            try {
-                // Only select the text content, not including the delete wrapper
-                const textNode = container.firstChild;
-                range.selectNodeContents(textNode);
-                selection.removeAllRanges();
-                selection.addRange(range);
-            } catch (error) {
-                console.error('Error setting text selection:', error);
-            }
-            isFirstClick = false;
-        }
-    });
+//     // Select all text when first clicked
+//     let isFirstClick = true;
+//     container.addEventListener('click', () => {
+//         if (isFirstClick && container.firstChild) {
+//             const selection = window.getSelection();
+//             const range = document.createRange();
+//             try {
+//                 // Only select the text content, not including the delete wrapper
+//                 const textNode = container.firstChild;
+//                 range.selectNodeContents(textNode);
+//                 selection.removeAllRanges();
+//                 selection.addRange(range);
+//             } catch (error) {
+//                 console.error('Error setting text selection:', error);
+//             }
+//             isFirstClick = false;
+//         }
+//     });
     
-    // Text formatting event handlers
-    container.addEventListener('focus', () => {
-        activeTextAnnotation = container;
-        textFormatToolbar.style.display = 'flex';
-        positionFormatToolbar(container);
-        updateToolbarState(container);
-    });
+//     // Text formatting event handlers
+//     container.addEventListener('focus', () => {
+//         activeTextAnnotation = container;
+//         textFormatToolbar.style.display = 'flex';
+//         positionFormatToolbar(container);
+//         updateToolbarState(container);
+//     });
     
-    container.addEventListener('blur', (e) => {
-        // Don't hide if clicking format toolbar
-        if (!e.relatedTarget || !textFormatToolbar.contains(e.relatedTarget)) {
-            textFormatToolbar.style.display = 'none';
-            if (container.textContent.trim() === '') {
-                container.innerHTML = 'Click to edit text';
-                const deleteWrapper = document.createElement('div');
-                deleteWrapper.className = 'delete-wrapper';
-                deleteWrapper.appendChild(createDeleteButton());
-                container.appendChild(deleteWrapper);
-            }
-            activeTextAnnotation = null;
-        }
-    });
+//     container.addEventListener('blur', (e) => {
+//         // Don't hide if clicking format toolbar
+//         if (!e.relatedTarget || !textFormatToolbar.contains(e.relatedTarget)) {
+//             textFormatToolbar.style.display = 'none';
+//             if (container.textContent.trim() === '') {
+//                 container.innerHTML = 'Click to edit text';
+//                 const deleteWrapper = document.createElement('div');
+//                 deleteWrapper.className = 'delete-wrapper';
+//                 deleteWrapper.appendChild(createDeleteButton());
+//                 container.appendChild(deleteWrapper);
+//             }
+//             activeTextAnnotation = null;
+//         }
+//     });
     
-    container.addEventListener('input', () => {
-        saveState();
-    });
+//     container.addEventListener('input', () => {
+//         saveState();
+//     });
     
-    // Stop propagation of mouse events to prevent unwanted behavior
-    container.addEventListener('mousedown', (e) => {
-        if (e.target === container) {
-            e.stopPropagation();
-        }
-    });
+//     // Stop propagation of mouse events to prevent unwanted behavior
+//     container.addEventListener('mousedown', (e) => {
+//         if (e.target === container) {
+//             e.stopPropagation();
+//         }
+//     });
     
-    // Make text draggable but allow text selection
-    let isDragging = false;
-    let startX, startY;
+//     // Make text draggable but allow text selection
+//     let isDragging = false;
+//     let startX, startY;
     
-    container.addEventListener('mousedown', (e) => {
-        if (e.target === container) {
-            isDragging = true;
-            startX = e.clientX - container.offsetLeft;
-            startY = e.clientY - container.offsetTop;
-        }
-    });
+//     container.addEventListener('mousedown', (e) => {
+//         if (e.target === container) {
+//             isDragging = true;
+//             startX = e.clientX - container.offsetLeft;
+//             startY = e.clientY - container.offsetTop;
+//         }
+//     });
     
-    document.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            container.style.left = `${e.clientX - startX}px`;
-            container.style.top = `${e.clientY - startY}px`;
-        }
-    });
+//     document.addEventListener('mousemove', (e) => {
+//         if (isDragging) {
+//             container.style.left = `${e.clientX - startX}px`;
+//             container.style.top = `${e.clientY - startY}px`;
+//         }
+//     });
     
-    document.addEventListener('mouseup', () => {
-        if (isDragging) {
-            isDragging = false;
-            saveState();
-        }
-    });
+//     document.addEventListener('mouseup', () => {
+//         if (isDragging) {
+//             isDragging = false;
+//             saveState();
+//         }
+//     });
     
-    annotationLayerDiv.appendChild(container);
-    container.focus();
-    saveState();
-    currentTool = null;
-    textTool.classList.remove("active");
-    return container;
-}
+//     annotationLayerDiv.appendChild(container);
+//     container.focus();
+//     saveState();
+//     currentTool = null;
+//     textTool.classList.remove("active");
+//     return container;
+// }
 
 // // Function to add tick mark annotation
 // function addTickMark(x, y, pageNumber) {
@@ -843,6 +906,8 @@ function addRoundAnnotation(x, y, pageNumber) {
 
 // Function to add cross annotation
 function addCrossAnnotation(x, y, pageNumber) {
+  console.log("addCrossAnnotation2");
+  
     const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
     if (!annotationLayerDiv) return;
 
@@ -888,7 +953,7 @@ function addCrossAnnotation(x, y, pageNumber) {
 
 // Function to add rectangle annotation
 function addRectangleAnnotation(x, y, pageNumber) {
-  alert ("Rectangle");
+  // alert ("Rectangle");
     const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
     if (!annotationLayerDiv) return;
 
@@ -1222,42 +1287,42 @@ document.querySelectorAll('.pdf-canvas').forEach((canvas) => {
   });
 });
 
-// Click handler for annotation layer
-document.querySelectorAll('.annotation-layer').forEach((annotationLayerDiv) => {
-  annotationLayerDiv.addEventListener("click", (e) => {
-    console.log("currentTool");
-    console.log('Annotation layer clicked');
-    if (e.target === annotationLayerDiv) {
-      const rect = annotationLayerDiv.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const pageNumber = parseInt(annotationLayerDiv.getAttribute('data-page'));
+// // Click handler for annotation layer
+// document.querySelectorAll('.annotation-layer').forEach((annotationLayerDiv) => {
+//   annotationLayerDiv.addEventListener("click", (e) => {
+//     console.log("currentTool");
+//     console.log('Annotation layer clicked5');
+//     if (e.target === annotationLayerDiv) {
+//       const rect = annotationLayerDiv.getBoundingClientRect();
+//       const x = e.clientX - rect.left;
+//       const y = e.clientY - rect.top;
+//       const pageNumber = parseInt(annotationLayerDiv.getAttribute('data-page'));
 
-      if (currentTool === "text") {
-        addTextAnnotation(x, y, pageNumber);
-      } else if (currentTool === "tick") {
-        console.log(currentTool);
+//       if (currentTool === "text") {
+//         addTextAnnotation(x, y, pageNumber);
+//       } else if (currentTool === "tick") {
+//         console.log(currentTool);
         
-        addTickMark(x, y, pageNumber);
-      } else if (currentTool === "round") {
-        addRoundAnnotation(x, y, pageNumber);
-      } else if (currentTool === "cross") {
-        addCrossAnnotation(x, y, pageNumber);
-      } else if (currentTool === "rectangle") {
-        addRectangleAnnotation(x, y, pageNumber);
-      } else if (currentTool === "image" && selectedImage) {
-        imageModal.style.display = "block";
-        imagePreview.style.display = "none";
-        imageFile.value = "";
+//         addTickMark(x, y, pageNumber);
+//       } else if (currentTool === "round") {
+//         addRoundAnnotation(x, y, pageNumber);
+//       } else if (currentTool === "cross") {
+//         addCrossAnnotation(x, y, pageNumber);
+//       } else if (currentTool === "rectangle") {
+//         addRectangleAnnotation(x, y, pageNumber);
+//       } else if (currentTool === "image" && selectedImage) {
+//         imageModal.style.display = "block";
+//         imagePreview.style.display = "none";
+//         imageFile.value = "";
         
-        // Store click coordinates and page number for later use
-        imageModal.dataset.clickX = x;
-        imageModal.dataset.clickY = y;
-        imageModal.dataset.pageNumber = pageNumber;
-      }
-    }
-  });
-});
+//         // Store click coordinates and page number for later use
+//         imageModal.dataset.clickX = x;
+//         imageModal.dataset.clickY = y;
+//         imageModal.dataset.pageNumber = pageNumber;
+//       }
+//     }
+//   });
+// });
 
 // Signature handling
 signatureCanvas.width = 400;
@@ -1909,7 +1974,7 @@ window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(async () => {
         const scale = await handleResponsivePDF();
-        updatePDFDisplay(scale);
+        // updatePDFDisplay(scale);
     }, 250);
 
     
@@ -2016,7 +2081,7 @@ colorPicker.addEventListener("input", () => {
   if (activeTextAnnotation) {
     activeTextAnnotation.style.color = colorPicker.value;
     saveState();
-    textFormatToolbar.style.display = 'none';
+    // textFormatToolbar.style.display = 'none';
   }
 });
 
@@ -2070,3 +2135,4 @@ function showNotification(message, duration = 5000) {
         notification.style.display = 'none';
     }, duration);
 }
+fetchAndLoadPDF();
