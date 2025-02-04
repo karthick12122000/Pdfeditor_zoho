@@ -324,8 +324,8 @@ body {
     border: 1px solid transparent;
     background-color: transparent;
     z-index: 100;
-    word-wrap: break-word;
-    white-space: pre-wrap;
+    /* word-wrap: break-word; */
+    white-space: nowrap;
 }
 
 .text-annotation:hover {
@@ -373,8 +373,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
 }
 
 .tick-annotation i {
@@ -426,8 +426,8 @@ body {
 }
 
 .cross-annotation {
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
     position: relative;
     display: flex;
     align-items: center;
@@ -437,8 +437,8 @@ body {
 .cross-line {
     position: absolute;
     background: #000000;
-    width: 80%;
-    height: 3px;
+    width: 50%;
+    height: 2px;
     left: 10%;
     top: 50%;
     transform-origin: center;
@@ -733,6 +733,7 @@ body {
     align-items: center;
     padding: 0 0 15px 0;
     margin-bottom: 15px;
+    margin-top: 26px;
     border-bottom: 1px solid #eee;
 }
 
@@ -779,6 +780,7 @@ body {
     right: 0;
     bottom: 0;
     pointer-events: none;
+   
 }
 
 .preview-container .page .annotation-container {
@@ -804,6 +806,7 @@ body {
     display: flex;
     gap: 15px;
     z-index: 1000;
+    display: none;
 }
 
 .preview-controls button {
@@ -865,31 +868,7 @@ body {
     to { opacity: 1; transform: translate(-50%, 0); }
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .container {
-        padding: 10px;
-        margin: 10px;
-    }
 
-    .tools {
-        gap: 5px;
-    }
-
-    .tool-btn {
-        padding: 8px 15px;
-        font-size: 13px;
-    }
-
-    .drag-drop-area {
-        padding: 20px;
-    }
-
-    .modal-content {
-        width: 95%;
-        padding: 15px;
-    }
-}
 
 .pages-container {
     display: flex;
@@ -920,6 +899,7 @@ body {
     left: 10px;
     pointer-events: auto;
     user-select: none;
+    /* overflow: hidden ; */
 }
 
 .page-number {
@@ -991,3 +971,65 @@ body {
   #freaze {
     display: none;
   }
+.move-wrapper{
+    
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    z-index: 1000;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+
+}
+.move-btn{
+    width: 20px;
+    height: 20px;
+    background: none;
+    border: none;
+    
+
+}
+.preview-controls{
+    display: none;
+}
+  /* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+        margin: 10px;
+    }
+
+    .tools {
+        gap: 5px;
+    }
+
+    .tool-btn {
+        padding: 8px 15px;
+        font-size: 13px;
+    }
+
+    .drag-drop-area {
+        padding: 20px;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 15px;
+    }
+   .round-annotation  .delete-btn, .rectangle-annotation .delete-btn, .cross-annotation .delete-btn {
+    top: -14px;
+right: 20%;
+    }
+    .text-annotation {
+        position: absolute;
+        min-width: 100px;
+        min-height: 8px;
+        padding-left: 5px;
+    }
+    .text-annotation:focus {
+        outline: none;
+        border: none;
+        background-color: none;
+    }
+}
