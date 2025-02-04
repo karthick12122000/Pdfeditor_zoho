@@ -8,6 +8,8 @@ const tickmarkTool = document.getElementById("tickmarkTool");
 const undoBtn = document.getElementById("undoBtn");
 const redoBtn = document.getElementById("redoBtn");
 const savePDFBtn = document.getElementById("savePDF");
+const uploadPDFBtn = document.getElementById("uploadPDF");
+
 const clearAllBtn = document.getElementById("clearAll");
 const signatureModal = document.getElementById("signatureModal");
 const signatureCanvas = document.getElementById("signatureCanvas");
@@ -41,6 +43,10 @@ const zoomInBtn = document.getElementById('zoomIn');
 const zoomOutBtn = document.getElementById('zoomOut');
 const fitWidthBtn = document.getElementById('fitWidth');
 const zoomLevelSpan = document.querySelector('.zoom-level');
+// Create a URLSearchParams object from the current URL
+const params = new URLSearchParams(window.location.search);
+const id = params.get('ID');
+const CrtNo = params.get('CrtNo');
 
 // State variables
 let currentPDF = null;
@@ -77,7 +83,8 @@ async function downloadCertificate() {
     freaze.style.display = "flex";
   try {
     console.log('Starting PDF download');
-    const response = await fetch("https://mcb.medicalcertificate.in/getcustomcertificate/159919000002190148", {
+   
+    const response = await fetch("https://mcb.medicalcertificate.in/getcustomcertificate/"+id, {
       method: "GET",
       headers: {
         'Accept': 'application/pdf'
@@ -151,6 +158,122 @@ function handleResponsivePDF() {
   });
 }
 // Function to render a specific page of the PDF
+// async function renderPage(pageNumber) {
+//   try {
+//     if (!currentPDF) {
+//       console.error('No PDF loaded');
+//       return;
+//     }
+
+//     console.log(`Rendering page ${pageNumber}`);
+//     const page = await currentPDF.getPage(pageNumber);
+//     const scale = await handleResponsivePDF();
+    
+//     const viewport = page.getViewport({ scale });
+    
+    
+//     // Create page wrapper
+//     const pageWrapper = document.createElement('div');
+//     pageWrapper.className = 'page-wrapper';
+//     pageWrapper.setAttribute('data-page', pageNumber);
+    
+//     // Add page number label
+//     const pageLabel = document.createElement('div');
+//     pageLabel.className = 'page-number';
+//     pageLabel.textContent = `Page ${pageNumber}`;
+//     pageWrapper.appendChild(pageLabel);
+    
+//     // Create canvas for this page
+//     const canvas = document.createElement('canvas');
+//     canvas.className = 'pdf-canvas';
+//     canvas.setAttribute('data-page', pageNumber);
+//     const ctx = canvas.getContext('2d', { alpha: false });
+//     canvas.width = viewport.width;
+//     canvas.height = viewport.height;
+    
+//     // Create annotation layer for this page
+//     const annotationLayerDiv = document.createElement('div');
+//     annotationLayerDiv.className = 'annotation-layer';
+//     annotationLayerDiv.setAttribute('data-page', pageNumber);
+//     annotationLayerDiv.style.width = `${viewport.width}px`;
+//     annotationLayerDiv.style.height = `${viewport.height}px`;
+    
+//     // Add click handlers for annotations
+//     annotationLayerDiv.addEventListener('click', (e) => {
+//       console.log('Annotation layer clicked');
+      
+//         if (e.target === annotationLayerDiv) {
+//             const rect = annotationLayerDiv.getBoundingClientRect();
+//             const x = e.clientX - rect.left;
+//             const y = e.clientY - rect.top;
+// console.log(x,y);
+
+//             if (currentTool === "text") {
+//               addTextAnnotation(x, y, pageNumber);
+//             } else if (currentTool === "tick") {
+//               addTickMark(x, y, pageNumber);
+//             } else if (currentTool === "round") {
+//               addRoundAnnotation(x, y, pageNumber);
+//             } else if (currentTool === "cross") {
+//               addCrossAnnotation(x, y, pageNumber);
+//             } else if (currentTool === "rectangle") {
+//               addRectangleAnnotation(x, y, pageNumber);
+//             } else if (currentTool === "image" && selectedImage) {
+//               imageModal.style.display = "block";
+//               imagePreview.style.display = "none";
+//               imageFile.value = "";
+              
+//               // Store click coordinates and page number for later use
+//               imageModal.dataset.clickX = x;
+//               imageModal.dataset.clickY = y;
+//               imageModal.dataset.pageNumber = pageNumber;
+//             }
+//           }
+//     });
+
+//     // // Add drag and drop handlers for assets
+//     // annotationLayerDiv.addEventListener('dragover', (e) => {
+//     //   e.preventDefault();
+//     //   e.dataTransfer.dropEffect = 'copy';
+//     // });
+
+//     // annotationLayerDiv.addEventListener('drop', (e) => {
+//     //   e.preventDefault();
+//     //   const imageSrc = e.dataTransfer.getData('text/plain');
+//     //   if (imageSrc) {
+//     //     const rect = annotationLayerDiv.getBoundingClientRect();
+//     //     const x = e.clientX - rect.left - 50;
+//     //     const y = e.clientY - rect.top - 50;
+//     //     addImageAnnotation(x, y, imageSrc, pageNumber);
+//     //     saveState();
+//     //   }
+//     // });
+    
+//     // Initialize annotations array for this page
+//     annotations.set(pageNumber, []);
+    
+//     pageWrapper.appendChild(canvas);
+//     pageWrapper.appendChild(annotationLayerDiv);
+//     pagesContainer.appendChild(pageWrapper);
+
+//     // Render PDF page
+//     const renderContext = {
+//       canvasContext: ctx,
+//       viewport: viewport,
+//       background: 'white'
+//     };
+
+//     try {
+//       await page.render(renderContext).promise;
+//       console.log(`Finished rendering page ${pageNumber}`);
+//     } catch (renderError) {
+//       console.error(`Error rendering page ${pageNumber}:`, renderError);
+//     }
+    
+//   } catch (error) {
+//     console.error(`Error rendering page ${pageNumber}:`, error);
+//   }
+// }
 async function renderPage(pageNumber) {
   try {
     if (!currentPDF) {
@@ -161,88 +284,74 @@ async function renderPage(pageNumber) {
     console.log(`Rendering page ${pageNumber}`);
     const page = await currentPDF.getPage(pageNumber);
     const scale = await handleResponsivePDF();
-    const viewport = page.getViewport({ scale });
     
+    const viewport = page.getViewport({ scale });
+
+    // Get device pixel ratio for better resolution
+    const dpr = window.devicePixelRatio || 1;
+
     // Create page wrapper
     const pageWrapper = document.createElement('div');
     pageWrapper.className = 'page-wrapper';
     pageWrapper.setAttribute('data-page', pageNumber);
-    
+
     // Add page number label
     const pageLabel = document.createElement('div');
     pageLabel.className = 'page-number';
     pageLabel.textContent = `Page ${pageNumber}`;
     pageWrapper.appendChild(pageLabel);
-    
+
     // Create canvas for this page
     const canvas = document.createElement('canvas');
     canvas.className = 'pdf-canvas';
     canvas.setAttribute('data-page', pageNumber);
     const ctx = canvas.getContext('2d', { alpha: false });
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    
-    // Create annotation layer for this page
+
+    // Adjust canvas for high-resolution rendering
+    canvas.width = Math.floor(viewport.width * dpr);
+    canvas.height = Math.floor(viewport.height * dpr);
+    canvas.style.width = `${viewport.width}px`;
+    canvas.style.height = `${viewport.height}px`;
+
+    // Scale context to match high resolution
+    ctx.scale(dpr, dpr);
+
+    // Create annotation layer
     const annotationLayerDiv = document.createElement('div');
     annotationLayerDiv.className = 'annotation-layer';
     annotationLayerDiv.setAttribute('data-page', pageNumber);
     annotationLayerDiv.style.width = `${viewport.width}px`;
     annotationLayerDiv.style.height = `${viewport.height}px`;
-    
-    // Add click handlers for annotations
+
     annotationLayerDiv.addEventListener('click', (e) => {
       console.log('Annotation layer clicked');
-      
-        if (e.target === annotationLayerDiv) {
-            const rect = annotationLayerDiv.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-console.log(x,y);
+      const rect = annotationLayerDiv.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-            if (currentTool === "text") {
-              addTextAnnotation(x, y, pageNumber);
-            } else if (currentTool === "tick") {
-              addTickMark(x, y, pageNumber);
-            } else if (currentTool === "round") {
-              addRoundAnnotation(x, y, pageNumber);
-            } else if (currentTool === "cross") {
-              addCrossAnnotation(x, y, pageNumber);
-            } else if (currentTool === "rectangle") {
-              addRectangleAnnotation(x, y, pageNumber);
-            } else if (currentTool === "image" && selectedImage) {
-              imageModal.style.display = "block";
-              imagePreview.style.display = "none";
-              imageFile.value = "";
-              
-              // Store click coordinates and page number for later use
-              imageModal.dataset.clickX = x;
-              imageModal.dataset.clickY = y;
-              imageModal.dataset.pageNumber = pageNumber;
-            }
-          }
+      if (currentTool === "text") {
+        addTextAnnotation(x, y, pageNumber);
+      } else if (currentTool === "tick") {
+        addTickMark(x, y, pageNumber);
+      } else if (currentTool === "round") {
+        addRoundAnnotation(x, y, pageNumber);
+      } else if (currentTool === "cross") {
+        addCrossAnnotation(x, y, pageNumber);
+      } else if (currentTool === "rectangle") {
+        addRectangleAnnotation(x, y, pageNumber);
+      } else if (currentTool === "image" && selectedImage) {
+        imageModal.style.display = "block";
+        imagePreview.style.display = "none";
+        imageFile.value = "";
+        imageModal.dataset.clickX = x;
+        imageModal.dataset.clickY = y;
+        imageModal.dataset.pageNumber = pageNumber;
+      }
     });
 
-    // // Add drag and drop handlers for assets
-    // annotationLayerDiv.addEventListener('dragover', (e) => {
-    //   e.preventDefault();
-    //   e.dataTransfer.dropEffect = 'copy';
-    // });
-
-    // annotationLayerDiv.addEventListener('drop', (e) => {
-    //   e.preventDefault();
-    //   const imageSrc = e.dataTransfer.getData('text/plain');
-    //   if (imageSrc) {
-    //     const rect = annotationLayerDiv.getBoundingClientRect();
-    //     const x = e.clientX - rect.left - 50;
-    //     const y = e.clientY - rect.top - 50;
-    //     addImageAnnotation(x, y, imageSrc, pageNumber);
-    //     saveState();
-    //   }
-    // });
-    
     // Initialize annotations array for this page
     annotations.set(pageNumber, []);
-    
+
     pageWrapper.appendChild(canvas);
     pageWrapper.appendChild(annotationLayerDiv);
     pagesContainer.appendChild(pageWrapper);
@@ -266,167 +375,453 @@ console.log(x,y);
   }
 }
 
+// // Function to add text annotation
+// function addTextAnnotation(x, y, pageNumber) {
+//   const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
+//   if (!annotationLayerDiv) return;
+//   const maincontainer = document.createElement('div');
+//   maincontainer.className = 'annotation maindiv';
+//   maincontainer.style.left = `${x}px`;
+//   maincontainer.style.top = `${y}px`;
+//   const container = document.createElement('div');
+//   container.className = 'annotation text-annotation';
+//   container.contentEditable = true;
+//  let fontFamilySelectvalue=12;
+//   if (window.matchMedia("(max-width: 768px)").matches) {
+//     console.log("Screen width is 768px or less");
+//     fontFamilySelectvalue=8;
+// } else {
+//     console.log("Screen width is greater than 768px");
+//     fontFamilySelectvalue=16;
+// }
+//   container.style.fontFamily = fontFamilySelect.value;
+//   container.style.fontSize = `${fontFamilySelectvalue}px`;
+//   container.style.color = colorPicker.value;
+//   container.innerHTML = 'Click to edit text';
+
+//   const deleteWrapper = document.createElement('div');
+//   deleteWrapper.className = 'delete-wrapper';
+//   const deleteBtn = createDeleteButton();
+//   deleteBtn.addEventListener('click', (e) => {
+//       e.stopPropagation();
+//       deleteAnnotation(maincontainer);
+//   });
+//   deleteWrapper.appendChild(deleteBtn);
+
+
+//   let isFirstClick = true;
+//   container.addEventListener('click', (e) => {
+//       if (isFirstClick || container.innerText === "Click to edit text") {
+//           container.innerText = '';
+//           isFirstClick = false;
+//       }
+//       container.focus();
+//       e.stopPropagation(); // Prevent click from triggering drag
+//   });
+
+//   container.addEventListener('keydown', () => {
+//       if (isFirstClick || container.innerText === "Click to edit text") {
+//           container.innerText = '';
+//           isFirstClick = false;
+//       }
+//   });
+
+//   container.addEventListener('focus', () => {
+//       activeTextAnnotation = container;
+//       textFormatToolbar.style.display = 'flex';
+//       deleteBtn.style.opacity = 1;
+//       positionFormatToolbar(container);
+//       updateToolbarState(container);
+//   });
+
+//   container.addEventListener('blur', (e) => {
+//       if (!e.relatedTarget || !textFormatToolbar.contains(e.relatedTarget)) {
+//           textFormatToolbar.style.display = 'none';
+//           deleteBtn.style.opacity = 0;
+//           if (container.textContent.trim() === '') {
+//               container.innerHTML = 'Click to edit text';
+//           }
+//           activeTextAnnotation = null;
+//       }
+//   });
+
+//   container.addEventListener('input', saveState);
+
+//   container.addEventListener('mousedown', (e) => e.stopPropagation());
+
+//   //////////////// DRAG (Improved)
+//   let isDragging = false;
+//   let startX, startY;
+
+//   function startDrag(e) {
+//       if (e.buttons === 1) { // Check for left mouse button
+//           isDragging = true;
+//           startX = e.clientX - maincontainer.offsetLeft;
+//           startY = e.clientY - maincontainer.offsetTop;
+//           e.stopPropagation();
+//       }
+//   }
+
+//   function moveDrag(e) {
+//       if (!isDragging) return;
+
+//       let newX = e.clientX - startX;
+//       let newY = e.clientY - startY;
+//       const annotationLayerRect = annotationLayerDiv.getBoundingClientRect();
+//       const containerRect = container.getBoundingClientRect();
+//       if (newX < 0) newX = 0;
+//       if (newY < 0) newY = 0;
+//       if (newX + containerRect.width > annotationLayerRect.width)
+//           newX = annotationLayerRect.width - containerRect.width;
+//       if (newY + containerRect.height > annotationLayerRect.height)
+//           newY = annotationLayerRect.height - containerRect.height;
+
+//       maincontainer.style.left = `${newX}px`;
+//       maincontainer.style.top = `${newY}px`;
+//   }
+
+//   function stopDrag(e) {
+//       isDragging = false;
+//       saveState();
+//   }
+
+//   container.addEventListener('mousedown', startDrag);
+//   document.addEventListener('mousemove', moveDrag);
+//   document.addEventListener('mouseup', stopDrag);
+
+
+//   maincontainer.appendChild(container);
+//   maincontainer.appendChild(deleteWrapper);
+//   annotationLayerDiv.appendChild(maincontainer);
+//   container.focus();
+//   saveState();
+//   currentTool = null;
+//   textTool.classList.remove("active");
+//   return maincontainer;
+// }
+// // Function to add text annotation
+// function addTextAnnotation(x, y, pageNumber) {
+//   const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
+//   if (!annotationLayerDiv) return;
+//   const maincontainer = document.createElement('div');
+//   maincontainer.className = 'annotation maindiv';
+//   maincontainer.style.left = `${x}px`;
+//   maincontainer.style.top = `${y}px`;
+//   const container = document.createElement('div');
+//   container.className = 'annotation text-annotation';
+//   container.contentEditable = true;
+//   container.style.fontFamily = fontFamilySelect.value;
+//   let fontFamilySelectvalue=12;
+//   if (window.matchMedia("(max-width: 768px)").matches) {
+//     console.log("Screen width is 768px or less");
+//     fontFamilySelectvalue=8;
+// } else {
+//     console.log("Screen width is greater than 768px");
+//     fontFamilySelectvalue=16;
+// }
+//   container.style.fontSize = `${   fontFamilySelectvalue  }px`;
+//   container.style.color = colorPicker.value;
+//   container.innerHTML = 'Click to edit text';
+
+//   const deleteWrapper = document.createElement('div');
+//   deleteWrapper.className = 'delete-wrapper';
+//   const deleteBtn = createDeleteButton();
+//   deleteBtn.addEventListener('click', (e) => {
+//       e.stopPropagation();
+//       deleteAnnotation(maincontainer);
+//   });
+//   deleteWrapper.appendChild(deleteBtn);
+
+
+//   let isFirstClick = true;
+//   container.addEventListener('click', (e) => {
+//       if (isFirstClick || container.innerText === "Click to edit text") {
+//           container.innerText = '';
+//           isFirstClick = false;
+//       }
+//       container.focus();
+//       e.stopPropagation(); // Prevent click from triggering drag
+//   });
+
+//   container.addEventListener('keydown', () => {
+//       if (isFirstClick || container.innerText === "Click to edit text") {
+//           container.innerText = '';
+//           isFirstClick = false;
+//       }
+//   });
+
+//   container.addEventListener('focus', () => {
+//       activeTextAnnotation = container;
+//       textFormatToolbar.style.display = 'flex';
+//       deleteBtn.style.opacity = 1;
+//       positionFormatToolbar(container);
+//       updateToolbarState(container);
+//   });
+
+//   container.addEventListener('blur', (e) => {
+//       if (!e.relatedTarget || !textFormatToolbar.contains(e.relatedTarget)) {
+//           textFormatToolbar.style.display = 'none';
+//           deleteBtn.style.opacity = 0;
+//           if (container.textContent.trim() === '') {
+//               container.innerHTML = 'Click to edit text';
+//           }
+//           activeTextAnnotation = null;
+//       }
+//   });
+
+//   container.addEventListener('input', saveState);
+
+//   container.addEventListener('mousedown', (e) => e.stopPropagation());
+
+//   //////////////// DRAG (Improved)
+//   let isDragging = false;
+//   let startX, startY;
+
+//   function startDrag(e) {
+//       if (e.buttons === 1) { // Check for left mouse button
+//           isDragging = true;
+//           startX = e.clientX - maincontainer.offsetLeft;
+//           startY = e.clientY - maincontainer.offsetTop;
+//           e.stopPropagation();
+//       }
+//   }
+
+//   function moveDrag(e) {
+//       if (!isDragging) return;
+
+//       let newX = e.clientX - startX;
+//       let newY = e.clientY - startY;
+//       const annotationLayerRect = annotationLayerDiv.getBoundingClientRect();
+//       const containerRect = container.getBoundingClientRect();
+//       if (newX < 0) newX = 0;
+//       if (newY < 0) newY = 0;
+//       if (newX + containerRect.width > annotationLayerRect.width)
+//           newX = annotationLayerRect.width - containerRect.width;
+//       if (newY + containerRect.height > annotationLayerRect.height)
+//           newY = annotationLayerRect.height - containerRect.height;
+
+//       maincontainer.style.left = `${newX}px`;
+//       maincontainer.style.top = `${newY}px`;
+//   }
+
+//   function stopDrag(e) {
+//       isDragging = false;
+//       saveState();
+//   }
+
+//   container.addEventListener('mousedown', startDrag);
+//   document.addEventListener('mousemove', moveDrag);
+//   document.addEventListener('mouseup', stopDrag);
+
+
+//   maincontainer.appendChild(container);
+//   maincontainer.appendChild(deleteWrapper);
+//   annotationLayerDiv.appendChild(maincontainer);
+//   container.focus();
+//   saveState();
+//   currentTool = null;
+//   textTool.classList.remove("active");
+//   return maincontainer;
+// }
 // Function to add text annotation
 function addTextAnnotation(x, y, pageNumber) {
-    const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
-    if (!annotationLayerDiv) return;
-    const maincontainer = document.createElement('div');
-    maincontainer.className = 'annotation maindiv';
-    maincontainer.style.left = `${x}px`;
-    maincontainer.style.top = `${y}px`;
-    const container = document.createElement('div');
-    container.className = 'annotation text-annotation';
-    container.contentEditable = true;
-    // container.style.left = `${x}px`;
-    // container.style.top = `${y}px`;
-    container.style.fontFamily = fontFamilySelect.value;
-    container.style.fontSize = `${fontSizeSelect.value}px`;
-    container.style.color = colorPicker.value;
-    container.innerHTML = 'Click to edit text';
-    
-    // Create delete button wrapper to prevent contentEditable
-    const deleteWrapper = document.createElement('div');
-    deleteWrapper.className = 'delete-wrapper';
-    const deleteBtn = createDeleteButton();
-    deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteAnnotation(maincontainer);
-    });
-    deleteWrapper.appendChild(deleteBtn);
-  
-    
-    // Select all text when first clicked
-    let isFirstClick = true;
-    container.addEventListener('click', () => {
-      container.focus()
-        if (isFirstClick  || container.innerText==="Click to edit text" && container.firstChild) {
-            const selection = window.getSelection();
-            const range = document.createRange();
-            try {
-              container.innerText='';
-                // Only select the text content, not including the delete wrapper
-                const textNode = container.firstChild;
-                // range.selectNodeContents(textNode);
-                // selection.removeAllRanges();
-                // selection.addRange(range);
-            } catch (error) {
-                console.error('Error setting text selection:', error);
-            }
-            isFirstClick = false;
-        }
-    });
-    container.addEventListener('keydown', () => {
-      if (isFirstClick || container.innerText==="Click to edit text" && container.firstChild ) {
-          const selection = window.getSelection();
-          const range = document.createRange();
-          try {
-            container.innerText='';
-              // Only select the text content, not including the delete wrapper
-              const textNode = container.firstChild;
-              // range.selectNodeContents(textNode);
-              // selection.removeAllRanges();
-              // selection.addRange(range);
-          } catch (error) {
-              console.error('Error setting text selection:', error);
-          }
+  const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
+  if (!annotationLayerDiv) return;
+  const maincontainer = document.createElement('div');
+  maincontainer.className = 'annotation maindiv';
+  maincontainer.style.left = `${x}px`;
+  maincontainer.style.top = `${y}px`;
+  const container = document.createElement('div');
+  container.className = 'annotation text-annotation';
+  container.contentEditable = true;
+  container.style.fontFamily = fontFamilySelect.value;
+  let fontFamilySelectvalue=12;
+  if (window.matchMedia("(max-width: 768px)").matches) {
+    console.log("Screen width is 768px or less");
+    fontFamilySelectvalue=8;
+} else {
+    console.log("Screen width is greater than 768px");
+    fontFamilySelectvalue=16;
+}
+  container.style.fontSize = `${   fontFamilySelectvalue  }px`;
+  container.style.color = colorPicker.value;
+  container.innerHTML = 'Click to edit text';
+
+  const deleteWrapper = document.createElement('div');
+  deleteWrapper.className = 'delete-wrapper';
+  const deleteBtn = createDeleteButton();
+  deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteAnnotation(maincontainer);
+  });
+  deleteWrapper.appendChild(deleteBtn);
+
+
+  let isFirstClick = true;
+  container.addEventListener('click', (e) => {
+      if (isFirstClick || container.innerText === "Click to edit text") {
+          container.innerText = '';
+          isFirstClick = false;
+      }
+      container.focus();
+      e.stopPropagation(); // Prevent click from triggering drag
+  });
+
+  container.addEventListener('keydown', () => {
+      if (isFirstClick || container.innerText === "Click to edit text") {
+          container.innerText = '';
           isFirstClick = false;
       }
   });
-    
-    // Text formatting event handlers
-    container.addEventListener('focus', () => {
-        activeTextAnnotation = container;
-        textFormatToolbar.style.display = 'flex';
-        deleteBtn.style.opacity=1;
-        positionFormatToolbar(container);
-        updateToolbarState(container);
-    });
-    
-    container.addEventListener('blur', (e) => {
-        // Don't hide if clicking format toolbar
-        if (!e.relatedTarget || !textFormatToolbar.contains(e.relatedTarget)) {
-            textFormatToolbar.style.display = 'none';
-            deleteBtn.style.opacity=0;
-            if (container.textContent.trim() === '') {
-                container.innerHTML = 'Click to edit text';
-                // const deleteWrapper = document.createElement('div');
-                // deleteWrapper.className = 'delete-wrapper';
-                // deleteWrapper.appendChild(createDeleteButton());
-                // container.appendChild(deleteWrapper);
-            }
-            activeTextAnnotation = null;
-        }
-    });
-    
-    container.addEventListener('input', () => {
-        saveState();
-    });
-    
-    // Stop propagation of mouse events to prevent unwanted behavior
-    container.addEventListener('mousedown', (e) => {
-        if (e.target === container) {
-            e.stopPropagation();
-        }
-    });
-    
-    container.addEventListener('input', saveState);
-  // Prevent unwanted clicks from propagating
+
+  container.addEventListener('focus', () => {
+      activeTextAnnotation = container;
+      textFormatToolbar.style.display = 'flex';
+      deleteBtn.style.opacity = 1;
+      positionFormatToolbar(container);
+      updateToolbarState(container);
+  });
+
+  container.addEventListener('blur', (e) => {
+      if (!e.relatedTarget || !textFormatToolbar.contains(e.relatedTarget)) {
+          textFormatToolbar.style.display = 'none';
+          deleteBtn.style.opacity = 0;
+          if (container.textContent.trim() === '') {
+              container.innerHTML = 'Click to edit text';
+          }
+          activeTextAnnotation = null;
+      }
+  });
+
+  container.addEventListener('input', saveState);
+
   container.addEventListener('mousedown', (e) => e.stopPropagation());
-  ////////////////drag
-  let isDragging = false;
-  let isTouchEditing = false;
-  let startX, startY, touchTimeout;
 
-  function startDrag(e) {
-      if (e.target === container) {
-          // Delay drag to detect single tap for editing
-          isTouchEditing = true;
-          touchTimeout = setTimeout(() => {
-              isDragging = true;
-              isTouchEditing = false;
-              const touch = e.touches ? e.touches[0] : e;
-              startX = touch.clientX - maincontainer.offsetLeft;
-              startY = touch.clientY - maincontainer.offsetTop;
-          }, 200); // 200ms delay to differentiate tap from drag
-      }
-      e.preventDefault();
+////////////////drag
+
+let isDragging = false;
+
+let isTouchEditing = false;
+
+let startX, startY, touchTimeout;
+
+
+
+function startDrag(e) {
+
+    if (e.target === container) {
+
+        // Delay drag to detect single tap for editing
+
+        isTouchEditing = true;
+
+        touchTimeout = setTimeout(() => {
+
+            isDragging = true;
+
+            isTouchEditing = false;
+
+            const touch = e.touches ? e.touches[0] : e;
+
+            startX = touch.clientX - maincontainer.offsetLeft;
+
+            startY = touch.clientY - maincontainer.offsetTop;
+
+        }, 200); // 200ms delay to differentiate tap from drag
+
+    }
+
+    e.preventDefault();
+
+}
+function edit(e) {
+  if (e.target === container) {
+      // Allow text selection if clicking inside the text container
+      return;
   }
 
-  function moveDrag(e) {
-      if (!isDragging) return;
-      isTouchEditing = false; // Cancel text editing on move
-      const touch = e.touches ? e.touches[0] : e;
-      let newX = touch.clientX - startX;
-      let newY = touch.clientY - startY;
-      const annotationLayerRect = annotationLayerDiv.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      if (newX < 0) newX = 0;
-      if (newY < 0) newY = 0;
-      if (newX + containerRect.width > annotationLayerRect.width)
-          newX = annotationLayerRect.width - containerRect.width;
-      if (newY + containerRect.height > annotationLayerRect.height)
-          newY = annotationLayerRect.height - containerRect.height;
-      maincontainer.style.left = `${newX}px`;
-      maincontainer.style.top = `${newY}px`;
-  }
+  isDragging = true;
+  const touch = e.touches ? e.touches[0] : e;
+  startX = touch.clientX - maincontainer.offsetLeft;
+  startY = touch.clientY - maincontainer.offsetTop;
 
-  function stopDrag(e) {
-      if (isTouchEditing) {
-          clearTimeout(touchTimeout);
-          container.focus(); // Enable text editing on tap
-          isTouchEditing = false;
-      }
-      isDragging = false;
-      saveState();
-  }
+  e.preventDefault();
+}
 
-  // Add event listeners for both mouse and touch
-  container.addEventListener('mousedown', startDrag);
-  document.addEventListener('mousemove', moveDrag);
-  document.addEventListener('mouseup', stopDrag);
-  container.addEventListener('touchstart', startDrag, { passive: false });
-  document.addEventListener('touchmove', moveDrag, { passive: false });
-  document.addEventListener('touchend', stopDrag);
+
+function moveDrag(e) {
+
+    if (!isDragging) return;
+
+    isTouchEditing = false; // Cancel text editing on move
+
+    const touch = e.touches ? e.touches[0] : e;
+
+    let newX = touch.clientX - startX;
+
+    let newY = touch.clientY - startY;
+
+    const annotationLayerRect = annotationLayerDiv.getBoundingClientRect();
+
+    const containerRect = container.getBoundingClientRect();
+
+    if (newX < 0) newX = 0;
+
+    if (newY < 0) newY = 0;
+
+    if (newX + containerRect.width > annotationLayerRect.width)
+
+        newX = annotationLayerRect.width - containerRect.width;
+
+    if (newY + containerRect.height > annotationLayerRect.height)
+
+        newY = annotationLayerRect.height - containerRect.height;
+
+    maincontainer.style.left = `${newX}px`;
+
+    maincontainer.style.top = `${newY}px`;
+
+}
+
+
+
+function stopDrag(e) {
+
+    if (isTouchEditing) {
+
+        clearTimeout(touchTimeout);
+
+        container.focus(); // Enable text editing on tap
+
+        isTouchEditing = false;
+
+    }
+
+    isDragging = false;
+
+    saveState();
+
+}
+
+
+
+// Add event listeners for both mouse and touch
+
+container.addEventListener('mousedown', startDrag);
+
+document.addEventListener('mousemove', moveDrag);
+
+document.addEventListener('mouseup', stopDrag);
+
+container.addEventListener('touch', edit, { passive: false });
+
+container.addEventListener('touchstart', startDrag, { passive: false });
+
+document.addEventListener('touchmove', moveDrag, { passive: false });
+
+document.addEventListener('touchend', stopDrag);
+
+
   maincontainer.appendChild(container);
   maincontainer.appendChild(deleteWrapper);
   annotationLayerDiv.appendChild(maincontainer);
@@ -436,7 +831,6 @@ function addTextAnnotation(x, y, pageNumber) {
   textTool.classList.remove("active");
   return maincontainer;
 }
-
 // Function to add tick mark annotation
 function addTickMark(x, y, pageNumber) {
   console.log(x, y, pageNumber);
@@ -446,12 +840,19 @@ function addTickMark(x, y, pageNumber) {
     tick.className = 'annotation tick-annotation';
     tick.style.left = x + 'px';
     tick.style.top = y + 'px';
-
+    let fontFamilySelectvalue="2opx"
+    if (window.matchMedia("(max-width: 768px)").matches) {
+      console.log("Screen width is 768px or less");
+      fontFamilySelectvalue=8;
+  } else {
+      console.log("Screen width is greater than 768px");
+      fontFamilySelectvalue=20;
+  }
     // Create tick mark using Font Awesome
     const tickMark = document.createElement('i');
     tickMark.className = 'fas fa-check';
     tickMark.style.color = '#3e3e3e'; // Bright green color
-    tickMark.style.fontSize = '24px';
+    tickMark.style.fontSize = `${fontFamilySelectvalue}px`;
     tick.appendChild(tickMark);
 
     // Create delete button
@@ -469,6 +870,7 @@ function addTickMark(x, y, pageNumber) {
 
 // Delete annotation function
 function deleteAnnotation(element) {
+  // alert("delete");
     if (element.dragCleanup) {
         element.dragCleanup(); // Clean up drag event listeners
     }
@@ -571,304 +973,670 @@ function createDeleteButton() {
     return deleteBtn;
 }
 
-// Function to make an element draggable
 function makeDraggable(element) {
-    let isDragging = false;
-    let currentX;
-    let currentY;
-    let initialX;
-    let initialY;
+  let isDragging = false;
+  let currentX, currentY, initialX, initialY;
 
-    element.addEventListener('mousedown', dragStart);
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', dragEnd);
+  element.addEventListener('mousedown', dragStart);
+  element.addEventListener('touchstart', dragStart, { passive: false });
 
-    function dragStart(e) {
-        if (e.target === element || e.target.parentNode === element) {
-            isDragging = true;
-            initialX = e.clientX - element.offsetLeft;
-            initialY = e.clientY - element.offsetTop;
-            element.style.cursor = 'grabbing';
-        }
-    }
+  document.addEventListener('mousemove', drag);
+  document.addEventListener('touchmove', drag, { passive: false });
 
-    function drag(e) {
-        if (isDragging) {
-            e.preventDefault();
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
+  document.addEventListener('mouseup', dragEnd);
+  document.addEventListener('touchend', dragEnd);
 
-            // Get the annotation layer boundaries
-            const annotationLayer = element.parentElement;
-            const bounds = annotationLayer.getBoundingClientRect();
-            const elementRect = element.getBoundingClientRect();
+  function dragStart(e) {
+      let event = e.type === 'touchstart' ? e.touches[0] : e;
 
-            // Keep the element within the annotation layer bounds
-            if (currentX >= 0 && currentX + elementRect.width <= bounds.width) {
-                element.style.left = currentX + 'px';
-            }
-            if (currentY >= 0 && currentY + elementRect.height <= bounds.height) {
-                element.style.top = currentY + 'px';
-            }
-        }
-    }
+      if (element.contains(event.target)) {
+          isDragging = true;
+          initialX = event.clientX - element.offsetLeft;
+          initialY = event.clientY - element.offsetTop;
+          element.style.cursor = 'grabbing';
+          // element.style.pointerEvents = 'none'; // Prevent selection issues
+      }
+  }
 
-    function dragEnd(e) {
-        if (isDragging) {
-            isDragging = false;
-            element.style.cursor = 'grab';
-            saveState();
-        }
-    }
+  function drag(e) {
+      if (!isDragging) return;
+      e.preventDefault();
+
+      let event = e.type === 'touchmove' ? e.touches[0] : e;
+      currentX = event.clientX - initialX;
+      currentY = event.clientY - initialY;
+
+      const annotationLayer = element.parentElement;
+      const bounds = annotationLayer.getBoundingClientRect();
+      const elementRect = element.getBoundingClientRect();
+
+      // Constrain movement within parent boundaries
+      if (currentX >= 0 && currentX + elementRect.width <= bounds.width) {
+          element.style.left = `${currentX}px`;
+      }
+      if (currentY >= 0 && currentY + elementRect.height <= bounds.height) {
+          element.style.top = `${currentY}px`;
+      }
+  }
+
+  function dragEnd() {
+      if (isDragging) {
+          isDragging = false;
+          element.style.cursor = 'grab';
+          element.style.pointerEvents = 'auto'; // Restore pointer events
+          
+          saveState();
+      }
+  }
 }
 
-// Function to make an element resizable
-function makeResizable(element) {
-    const handles = ['nw', 'ne', 'sw', 'se'];
-    let isResizing = false;
+// // Function to make an element resizable
+// function makeResizable(element) {
+//     const handles = ['nw', 'ne', 'sw', 'se'];
+//     let isResizing = false;
     
-    handles.forEach(handle => {
-        const resizer = document.createElement('div');
-        resizer.className = `resizer ${handle}`;
-        element.appendChild(resizer);
+//     handles.forEach(handle => {
+//         const resizer = document.createElement('div');
+//         resizer.className = `resizer ${handle}`;
+//         element.appendChild(resizer);
         
-        resizer.addEventListener('mousedown', initResize);
+//         resizer.addEventListener('mousedown', initResize);
         
-        function initResize(e) {
-            e.stopPropagation();
-            isResizing = true;
-            
-            const startX = e.clientX;
-            const startY = e.clientY;
-            const startWidth = parseInt(window.getComputedStyle(element).width);
-            const startHeight = parseInt(window.getComputedStyle(element).height);
-            const startLeft = parseInt(element.style.left);
-            const startTop = parseInt(element.style.top);
-            
-            const resizeMove = (moveEvent) => {
-                if (!isResizing) return;
-                moveEvent.preventDefault();
-                
-                const deltaX = moveEvent.clientX - startX;
-                const deltaY = moveEvent.clientY - startY;
-                
-                let newWidth = startWidth;
-                let newHeight = startHeight;
-                let newLeft = startLeft;
-                let newTop = startTop;
-                
-                // Handle different resize corners
-                switch(handle) {
-                    case 'nw':
-                        newWidth = startWidth - deltaX;
-                        newHeight = startHeight - deltaY;
-                        newLeft = startLeft + deltaX;
-                        newTop = startTop + deltaY;
-                        break;
-                    case 'ne':
-                        newWidth = startWidth + deltaX;
-                        newHeight = startHeight - deltaY;
-                        newTop = startTop + deltaY;
-                        break;
-                    case 'sw':
-                        newWidth = startWidth - deltaX;
-                        newHeight = startHeight + deltaY;
-                        newLeft = startLeft + deltaX;
-                        break;
-                    case 'se':
-                        newWidth = startWidth + deltaX;
-                        newHeight = startHeight + deltaY;
-                        break;
-                }
-                
-                // Special handling for different annotation types
-                if (element.classList.contains('round-annotation') || element.classList.contains('cross-annotation')) {
-                    // For round and cross annotations, maintain square shape
-                    const size = Math.max(Math.max(newWidth, newHeight), 20);
-                    newWidth = size;
-                    newHeight = size;
-                    
-                    // For cross annotations, update lines
-                    if (element.classList.contains('cross-annotation')) {
-                        const lines = element.querySelectorAll('.cross-line');
-                        lines.forEach(line => {
-                            line.style.width = (size * 0.8) + 'px';
-                            line.style.left = (size * 0.1) + 'px';
-                            line.style.height = '3px';
-                        });
-                    }
-                } else if (element.classList.contains('rectangle-annotation')) {
-                    // For rectangles, maintain minimum size but allow any aspect ratio
-                    newWidth = Math.max(newWidth, 20);
-                    newHeight = Math.max(newHeight, 20);
-                }
-                
-                // Apply new dimensions and position
-                element.style.width = newWidth + 'px';
-                element.style.height = newHeight + 'px';
-                
-                // Update position based on handle
-                if (handle.includes('w')) {
-                    element.style.left = newLeft + 'px';
-                }
-                if (handle.includes('n')) {
-                    element.style.top = newTop + 'px';
-                }
-            };
-            
-            const resizeEnd = () => {
-                isResizing = false;
-                document.removeEventListener('mousemove', resizeMove);
-                document.removeEventListener('mouseup', resizeEnd);
-                saveState();
-            };
-            
-            document.addEventListener('mousemove', resizeMove);
-            document.addEventListener('mouseup', resizeEnd);
-        }
-    });
-}
-
-// Function to add text annotation
-// function addTextAnnotation(x, y, pageNumber) {
-//     const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
-//     const container = document.createElement('div');
-//     container.className = 'annotation text-annotation';
-//     container.contentEditable = true;
-//     container.style.left = `${x}px`;
-//     container.style.top = `${y}px`;
-//     container.style.fontFamily = fontFamilySelect.value;
-//     container.style.fontSize = `${fontSizeSelect.value}px`;
-//     container.style.color = colorPicker.value;
-//     container.innerHTML = 'Click to edit text';
-    
-//     // Create delete button wrapper to prevent contentEditable
-//     const deleteWrapper = document.createElement('div');
-//     deleteWrapper.className = 'delete-wrapper';
-//     const deleteBtn = createDeleteButton();
-//     deleteBtn.addEventListener('click', (e) => {
-//         e.stopPropagation();
-//         deleteAnnotation(container);
-//     });
-//     deleteWrapper.appendChild(deleteBtn);
-//     container.appendChild(deleteWrapper);
-    
-//     // Select all text when first clicked
-//     let isFirstClick = true;
-//     container.addEventListener('click', () => {
-//         if (isFirstClick && container.firstChild) {
-//             const selection = window.getSelection();
-//             const range = document.createRange();
-//             try {
-//                 // Only select the text content, not including the delete wrapper
-//                 const textNode = container.firstChild;
-//                 range.selectNodeContents(textNode);
-//                 selection.removeAllRanges();
-//                 selection.addRange(range);
-//             } catch (error) {
-//                 console.error('Error setting text selection:', error);
-//             }
-//             isFirstClick = false;
-//         }
-//     });
-    
-//     // Text formatting event handlers
-//     container.addEventListener('focus', () => {
-//         activeTextAnnotation = container;
-//         textFormatToolbar.style.display = 'flex';
-//         positionFormatToolbar(container);
-//         updateToolbarState(container);
-//     });
-    
-//     container.addEventListener('blur', (e) => {
-//         // Don't hide if clicking format toolbar
-//         if (!e.relatedTarget || !textFormatToolbar.contains(e.relatedTarget)) {
-//             textFormatToolbar.style.display = 'none';
-//             if (container.textContent.trim() === '') {
-//                 container.innerHTML = 'Click to edit text';
-//                 const deleteWrapper = document.createElement('div');
-//                 deleteWrapper.className = 'delete-wrapper';
-//                 deleteWrapper.appendChild(createDeleteButton());
-//                 container.appendChild(deleteWrapper);
-//             }
-//             activeTextAnnotation = null;
-//         }
-//     });
-    
-//     container.addEventListener('input', () => {
-//         saveState();
-//     });
-    
-//     // Stop propagation of mouse events to prevent unwanted behavior
-//     container.addEventListener('mousedown', (e) => {
-//         if (e.target === container) {
+//         function initResize(e) {
 //             e.stopPropagation();
+//             isResizing = true;
+            
+//             const startX = e.clientX;
+//             const startY = e.clientY;
+//             const startWidth = parseInt(window.getComputedStyle(element).width);
+//             const startHeight = parseInt(window.getComputedStyle(element).height);
+//             const startLeft = parseInt(element.style.left);
+//             const startTop = parseInt(element.style.top);
+            
+//             const resizeMove = (moveEvent) => {
+//                 if (!isResizing) return;
+//                 moveEvent.preventDefault();
+                
+//                 const deltaX = moveEvent.clientX - startX;
+//                 const deltaY = moveEvent.clientY - startY;
+                
+//                 let newWidth = startWidth;
+//                 let newHeight = startHeight;
+//                 let newLeft = startLeft;
+//                 let newTop = startTop;
+                
+//                 // Handle different resize corners
+//                 switch(handle) {
+//                     case 'nw':
+//                         newWidth = startWidth - deltaX;
+//                         newHeight = startHeight - deltaY;
+//                         newLeft = startLeft + deltaX;
+//                         newTop = startTop + deltaY;
+//                         break;
+//                     case 'ne':
+//                         newWidth = startWidth + deltaX;
+//                         newHeight = startHeight - deltaY;
+//                         newTop = startTop + deltaY;
+//                         break;
+//                     case 'sw':
+//                         newWidth = startWidth - deltaX;
+//                         newHeight = startHeight + deltaY;
+//                         newLeft = startLeft + deltaX;
+//                         break;
+//                     case 'se':
+//                         newWidth = startWidth + deltaX;
+//                         newHeight = startHeight + deltaY;
+//                         break;
+//                 }
+                
+//                 // Special handling for different annotation types
+//                 if (element.classList.contains('round-annotation') || element.classList.contains('cross-annotation')) {
+//                     // For round and cross annotations, maintain square shape
+//                     const size = Math.max(Math.max(newWidth, newHeight), 20);
+//                     newWidth = size;
+//                     newHeight = size;
+                    
+//                     // For cross annotations, update lines
+//                     if (element.classList.contains('cross-annotation')) {
+//                         const lines = element.querySelectorAll('.cross-line');
+//                         lines.forEach(line => {
+//                             line.style.width = (size * 0.8) + 'px';
+//                             line.style.left = (size * 0.1) + 'px';
+//                             line.style.height = '3px';
+//                         });
+//                     }
+//                 } else if (element.classList.contains('rectangle-annotation')) {
+//                     // For rectangles, maintain minimum size but allow any aspect ratio
+//                     newWidth = Math.max(newWidth, 20);
+//                     newHeight = Math.max(newHeight, 20);
+//                 }
+                
+//                 // Apply new dimensions and position
+//                 element.style.width = newWidth + 'px';
+//                 element.style.height = newHeight + 'px';
+                
+//                 // Update position based on handle
+//                 if (handle.includes('w')) {
+//                     element.style.left = newLeft + 'px';
+//                 }
+//                 if (handle.includes('n')) {
+//                     element.style.top = newTop + 'px';
+//                 }
+//             };
+            
+//             const resizeEnd = () => {
+//                 isResizing = false;
+//                 document.removeEventListener('mousemove', resizeMove);
+//                 document.removeEventListener('mouseup', resizeEnd);
+//                 saveState();
+//             };
+            
+//             document.addEventListener('mousemove', resizeMove);
+//             document.addEventListener('mouseup', resizeEnd);
 //         }
 //     });
-    
-//     // Make text draggable but allow text selection
-//     let isDragging = false;
-//     let startX, startY;
-    
-//     container.addEventListener('mousedown', (e) => {
-//         if (e.target === container) {
-//             isDragging = true;
-//             startX = e.clientX - container.offsetLeft;
-//             startY = e.clientY - container.offsetTop;
-//         }
-//     });
-    
-//     document.addEventListener('mousemove', (e) => {
-//         if (isDragging) {
-//             container.style.left = `${e.clientX - startX}px`;
-//             container.style.top = `${e.clientY - startY}px`;
-//         }
-//     });
-    
-//     document.addEventListener('mouseup', () => {
-//         if (isDragging) {
-//             isDragging = false;
-//             saveState();
-//         }
-//     });
-    
-//     annotationLayerDiv.appendChild(container);
-//     container.focus();
-//     saveState();
-//     currentTool = null;
-//     textTool.classList.remove("active");
-//     return container;
 // }
 
-// // Function to add tick mark annotation
-// function addTickMark(x, y, pageNumber) {
-//     const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
-//     const tick = document.createElement('div');
-//     tick.className = 'annotation tick-annotation';
-//     tick.style.left = x + 'px';
-//     tick.style.top = y + 'px';
+// // Function to make an element resizable
+// function makeResizable(element) {
+//   const handles = ['nw', 'ne', 'sw', 'se'];
+//   let isResizing = false;
+  
+//   handles.forEach(handle => {
+//       const resizer = document.createElement('div');
+//       resizer.className = `resizer ${handle}`;
+//       element.appendChild(resizer);
+      
+//       // Mouse event handlers
+//       resizer.addEventListener('mousedown', initResize);
+//       // Touch event handlers
+//       resizer.addEventListener('touchstart', initResize, { passive: false });
+      
+//       function initResize(e) {
+//           e.stopPropagation();
+//           isResizing = true;
+          
+//           // Get initial positions based on event type
+//           const startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+//           const startY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
+//           const startWidth = parseInt(window.getComputedStyle(element).width);
+//           const startHeight = parseInt(window.getComputedStyle(element).height);
+//           const startLeft = parseInt(element.style.left);
+//           const startTop = parseInt(element.style.top);
+          
+//           const resizeMove = (moveEvent) => {
+//               if (!isResizing) return;
+//               moveEvent.preventDefault();
+              
+//               // Get current position based on event type
+//               const currentX = moveEvent.type === 'mousemove' ? moveEvent.clientX : moveEvent.touches[0].clientX;
+//               const currentY = moveEvent.type === 'mousemove' ? moveEvent.clientY : moveEvent.touches[0].clientY;
+              
+//               const deltaX = currentX - startX;
+//               const deltaY = currentY - startY;
+              
+//               let newWidth = startWidth;
+//               let newHeight = startHeight;
+//               let newLeft = startLeft;
+//               let newTop = startTop;
+              
+//               // Handle different resize corners
+//               switch(handle) {
+//                   case 'nw':
+//                       newWidth = startWidth - deltaX;
+//                       newHeight = startHeight - deltaY;
+//                       newLeft = startLeft + deltaX;
+//                       newTop = startTop + deltaY;
+//                       break;
+//                   case 'ne':
+//                       newWidth = startWidth + deltaX;
+//                       newHeight = startHeight - deltaY;
+//                       newTop = startTop + deltaY;
+//                       break;
+//                   case 'sw':
+//                       newWidth = startWidth - deltaX;
+//                       newHeight = startHeight + deltaY;
+//                       newLeft = startLeft + deltaX;
+//                       break;
+//                   case 'se':
+//                       newWidth = startWidth + deltaX;
+//                       newHeight = startHeight + deltaY;
+//                       break;
+//               }
+              
+//               // Special handling for different annotation types
+//               if (element.classList.contains('round-annotation') || element.classList.contains('cross-annotation')) {
+//                   // For round and cross annotations, maintain square shape
+//                   const size = Math.max(Math.max(newWidth, newHeight), 20);
+//                   newWidth = size;
+//                   newHeight = size;
+                  
+//                   // For cross annotations, update lines
+//                   if (element.classList.contains('cross-annotation')) {
+//                       const lines = element.querySelectorAll('.cross-line');
+//                       lines.forEach(line => {
+//                           line.style.width = (size * 0.8) + 'px';
+//                           line.style.left = (size * 0.1) + 'px';
+//                           line.style.height = '3px';
+//                       });
+//                   }
+//               } else if (element.classList.contains('rectangle-annotation')) {
+//                   // For rectangles, maintain minimum size but allow any aspect ratio
+//                   newWidth = Math.max(newWidth, 20);
+//                   newHeight = Math.max(newHeight, 20);
+//               }
+              
+//               // Apply new dimensions and position
+//               element.style.width = newWidth + 'px';
+//               element.style.height = newHeight + 'px';
+              
+//               // Update position based on handle
+//               if (handle.includes('w')) {
+//                   element.style.left = newLeft + 'px';
+//               }
+//               if (handle.includes('n')) {
+//                   element.style.top = newTop + 'px';
+//               }
+//           };
+          
+//           const resizeEnd = () => {
+//               isResizing = false;
+//               document.removeEventListener('mousemove', resizeMove);
+//               document.removeEventListener('mouseup', resizeEnd);
+//               document.removeEventListener('touchmove', resizeMove);
+//               document.removeEventListener('touchend', resizeEnd);
+//               saveState();
+//           };
+          
+//           // Add both mouse and touch event listeners
+//           document.addEventListener('mousemove', resizeMove);
+//           document.addEventListener('mouseup', resizeEnd);
+//           document.addEventListener('touchmove', resizeMove, { passive: false });
+//           document.addEventListener('touchend', resizeEnd);
+//       }
+//   });
+// }
+// function makeResizable(element) {
+//     const handles = ['nw', 'ne', 'sw', 'se'];
+//     let isResizing = false;
 
-//     // Create tick mark using Font Awesome
-//     const tickMark = document.createElement('i');
-//     tickMark.className = 'fas fa-check';
-//     tickMark.style.color = '#3e3e3e'; // Bright green color
-//     tickMark.style.fontSize = '24px';
-//     tick.appendChild(tickMark);
+//     handles.forEach(handle => {
+//         const resizer = document.createElement('div');
+//         resizer.className = `resizer ${handle}`;
+//         element.appendChild(resizer);
 
-//     // Create delete button
-//     const deleteBtn = createDeleteButton();
-//     tick.appendChild(deleteBtn);
+//         // Mouse event handlers
+//         resizer.addEventListener('mousedown', initResize);
+//         // Touch event handlers
+//         resizer.addEventListener('touchstart', initResize, { passive: false });
 
-//     // Add to annotation layer
-//     annotationLayerDiv.appendChild(tick);
-//     makeDraggable(tick);
-//     currentTool = null;
-//     tickmarkTool.classList.remove("active");
-//     // Save state
-//     saveState();
+//         function initResize(e) {
+//             e.stopPropagation();
+//             isResizing = true;
+//             const annotationLayerDiv = element.parentElement;
+//             const annotationLayerRect = annotationLayerDiv.getBoundingClientRect();
+//             const elementRect = element.getBoundingClientRect();
+
+//             // Get initial positions
+//             const startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+//             const startY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
+//             const startWidth = parseInt(window.getComputedStyle(element).width);
+//             const startHeight = parseInt(window.getComputedStyle(element).height);
+//             const startLeft = elementRect.left - annotationLayerRect.left;
+//             const startTop = elementRect.top - annotationLayerRect.top;
+
+//             const resizeMove = (moveEvent) => {
+//                 if (!isResizing) return;
+//                 moveEvent.preventDefault();
+
+//                 const currentX = moveEvent.type === 'mousemove' ? moveEvent.clientX : moveEvent.touches[0].clientX;
+//                 const currentY = moveEvent.type === 'mousemove' ? moveEvent.clientY : moveEvent.touches[0].clientY;
+
+//                 const deltaX = currentX - startX;
+//                 const deltaY = currentY - startY;
+
+//                 let newWidth = startWidth;
+//                 let newHeight = startHeight;
+//                 let newLeft = startLeft;
+//                 let newTop = startTop;
+
+//                 // Handle different resize corners
+//                 switch (handle) {
+//                     case 'nw':
+//                         newWidth = startWidth - deltaX;
+//                         newHeight = startHeight - deltaY;
+//                         newLeft = startLeft + deltaX;
+//                         newTop = startTop + deltaY;
+//                         break;
+//                     case 'ne':
+//                         newWidth = startWidth + deltaX;
+//                         newHeight = startHeight - deltaY;
+//                         newTop = startTop + deltaY;
+//                         break;
+//                     case 'sw':
+//                         newWidth = startWidth - deltaX;
+//                         newHeight = startHeight + deltaY;
+//                         newLeft = startLeft + deltaX;
+//                         break;
+//                     case 'se':
+//                         newWidth = startWidth + deltaX;
+//                         newHeight = startHeight + deltaY;
+//                         break;
+//                 }
+
+//                 // Ensure minimum size
+//                 newWidth = Math.max(newWidth, 20);
+//                 newHeight = Math.max(newHeight, 20);
+
+//                 // Prevent resizing beyond annotation layer boundaries
+//                 if (newLeft < 0) {
+//                     newWidth += newLeft; // Adjust width to prevent overflow
+//                     newLeft = 0;
+//                 }
+//                 if (newTop < 0) {
+//                   newHeight = startHeight + startTop; // Limit height so top doesn't go outside
+//                   newTop = 0;
+//               }
+//                 if (newLeft + newWidth > annotationLayerRect.width) {
+//                     newWidth = annotationLayerRect.width - newLeft;
+//                 }
+//                 if (newTop + newHeight > annotationLayerRect.height) {
+//                     newHeight = annotationLayerRect.height - newTop;
+//                 }
+
+//                 // Apply new dimensions and position
+//                 element.style.width = newWidth + 'px';
+//                 element.style.height = newHeight + 'px';
+
+//                 if (handle.includes('w')) {
+//                     element.style.left = newLeft + 'px';
+//                 }
+//                 if (handle.includes('n')) {
+//                     element.style.top = newTop + 'px';
+//                 }
+//             };
+
+//             const resizeEnd = () => {
+//                 isResizing = false;
+//                 document.removeEventListener('mousemove', resizeMove);
+//                 document.removeEventListener('mouseup', resizeEnd);
+//                 document.removeEventListener('touchmove', resizeMove);
+//                 document.removeEventListener('touchend', resizeEnd);
+//                 saveState();
+//             };
+
+//             document.addEventListener('mousemove', resizeMove);
+//             document.addEventListener('mouseup', resizeEnd);
+//             document.addEventListener('touchmove', resizeMove, { passive: false });
+//             document.addEventListener('touchend', resizeEnd);
+//         }
+//     });
+// }
+ 
+//////////////////////----------2/1/2025
+// function makeResizable(element) {
+//   const handles = ['nw', 'ne', 'sw', 'se'];
+//   let isResizing = false;
+
+//   handles.forEach(handle => {
+//       const resizer = document.createElement('div');
+//       resizer.className = `resizer ${handle}`;
+//       element.appendChild(resizer);
+
+//       // Mouse event handlers
+//       resizer.addEventListener('mousedown', initResize);
+//       // Touch event handlers
+//       resizer.addEventListener('touchstart', initResize, { passive: false });
+
+//       function initResize(e) {
+//           e.stopPropagation();
+//           isResizing = true;
+//           const annotationLayerDiv = element.parentElement;
+//           const annotationLayerRect = annotationLayerDiv.getBoundingClientRect();
+//           const elementRect = element.getBoundingClientRect();
+
+//           // Get initial positions
+//           const startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+//           const startY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
+//           const startWidth = parseInt(window.getComputedStyle(element).width);
+//           const startHeight = parseInt(window.getComputedStyle(element).height);
+//           const startLeft = elementRect.left - annotationLayerRect.left;
+//           const startTop = elementRect.top - annotationLayerRect.top;
+
+//           const resizeMove = (moveEvent) => {
+//               if (!isResizing) return;
+//               moveEvent.preventDefault();
+
+//               const currentX = moveEvent.type === 'mousemove' ? moveEvent.clientX : moveEvent.touches[0].clientX;
+//               const currentY = moveEvent.type === 'mousemove' ? moveEvent.clientY : moveEvent.touches[0].clientY;
+
+//               const deltaX = currentX - startX;
+//               const deltaY = currentY - startY;
+
+//               let newWidth = startWidth;
+//               let newHeight = startHeight;
+//               let newLeft = startLeft;
+//               let newTop = startTop;
+
+//               // Handle different resize corners
+//               switch (handle) {
+//                   case 'nw':
+//                       newWidth = startWidth - deltaX;
+//                       newHeight = startHeight - deltaY;
+//                       newLeft = startLeft + deltaX;
+//                       newTop = startTop + deltaY;
+//                       break;
+//                   case 'ne':
+//                       newWidth = startWidth + deltaX;
+//                       newHeight = startHeight - deltaY;
+//                       newTop = startTop + deltaY;
+//                       break;
+//                   case 'sw':
+//                       newWidth = startWidth - deltaX;
+//                       newHeight = startHeight + deltaY;
+//                       newLeft = startLeft + deltaX;
+//                       break;
+//                   case 'se':
+//                       newWidth = startWidth + deltaX;
+//                       newHeight = startHeight + deltaY;
+//                       break;
+//               }
+
+//               // Ensure minimum size
+//               if (newWidth < 20) {
+//                   newWidth = 20;
+//                   if (handle.includes('w')) {
+//                       newLeft = startLeft + (startWidth - newWidth);
+//                   }
+//               }
+//               if (newHeight < 20) {
+//                   newHeight = 20;
+//                   if (handle.includes('n')) {
+//                       newTop = startTop + (startHeight - newHeight);
+//                   }
+//               }
+
+//               // Prevent resizing beyond annotation layer boundaries
+//               if (newLeft < 0) {
+//                   newLeft = 0;
+//                   newWidth = startWidth + (startLeft - newLeft);
+//               }
+//               if (newTop < 0) {
+//                   newTop = 0;
+//                   newHeight = startHeight + (startTop - newTop);
+//               }
+//               if (newLeft + newWidth > annotationLayerRect.width) {
+//                   newWidth = annotationLayerRect.width - newLeft;
+//               }
+//               if (newTop + newHeight > annotationLayerRect.height) {
+//                   newHeight = annotationLayerRect.height - newTop;
+//               }
+
+//               // Apply new dimensions and position
+//               element.style.width = newWidth + 'px';
+//               element.style.height = newHeight + 'px';
+//               if (handle.includes('w')) {
+//                   element.style.left = newLeft + 'px';
+//               }
+//               if (handle.includes('n')) {
+//                   element.style.top = newTop + 'px';
+//               }
+//           };
+
+//           const resizeEnd = () => {
+//               isResizing = false;
+//               document.removeEventListener('mousemove', resizeMove);
+//               document.removeEventListener('mouseup', resizeEnd);
+//               document.removeEventListener('touchmove', resizeMove);
+//               document.removeEventListener('touchend', resizeEnd);
+//           };
+
+//           document.addEventListener('mousemove', resizeMove);
+//           document.addEventListener('mouseup', resizeEnd);
+//           document.addEventListener('touchmove', resizeMove, { passive: false });
+//           document.addEventListener('touchend', resizeEnd);
+//       }
+//   });
 // }
 
-// Function to add round annotation
+
+////////////////////////-----------------
+function makeResizable(element) {
+  const handles = ['nw', 'ne', 'sw', 'se'];
+  let isResizing = false;
+
+  handles.forEach(handle => {
+      const resizer = document.createElement('div');
+      resizer.className = `resizer ${handle}`;
+      element.appendChild(resizer);
+
+      // Mouse event handlers
+      resizer.addEventListener('mousedown', initResize);
+      // Touch event handlers
+      resizer.addEventListener('touchstart', initResize, { passive: false });
+
+      function initResize(e) {
+          e.stopPropagation();
+          isResizing = true;
+          const annotationLayerDiv = element.parentElement;
+          const annotationLayerRect = annotationLayerDiv.getBoundingClientRect();
+          const elementRect = element.getBoundingClientRect();
+
+          // Get initial positions
+          const startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+          const startY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
+          const startWidth = parseInt(window.getComputedStyle(element).width);
+          const startHeight = parseInt(window.getComputedStyle(element).height);
+          const startLeft = elementRect.left - annotationLayerRect.left;
+          const startTop = elementRect.top - annotationLayerRect.top;
+
+          // Calculate aspect ratio
+          const aspectRatio = startWidth / startHeight;
+
+          const resizeMove = (moveEvent) => {
+              if (!isResizing) return;
+              moveEvent.preventDefault();
+
+              const currentX = moveEvent.type === 'mousemove' ? moveEvent.clientX : moveEvent.touches[0].clientX;
+              const currentY = moveEvent.type === 'mousemove' ? moveEvent.clientY : moveEvent.touches[0].clientY;
+
+              const deltaX = currentX - startX;
+              const deltaY = currentY - startY;
+
+              let newWidth = startWidth;
+              let newHeight = startHeight;
+              let newLeft = startLeft;
+              let newTop = startTop;
+
+              // Handle different resize corners
+              switch (handle) {
+                  case 'nw':
+                      newWidth = startWidth - deltaX;
+                      newHeight = newWidth / aspectRatio;
+                      newLeft = startLeft + deltaX;
+                      newTop = startTop + (startHeight - newHeight);
+                      break;
+                  case 'ne':
+                      newWidth = startWidth + deltaX;
+                      newHeight = newWidth / aspectRatio;
+                      newTop = startTop + (startHeight - newHeight);
+                      break;
+                  case 'sw':
+                      newWidth = startWidth - deltaX;
+                      newHeight = newWidth / aspectRatio;
+                      newLeft = startLeft + deltaX;
+                      break;
+                  case 'se':
+                      newWidth = startWidth + deltaX;
+                      newHeight = newWidth / aspectRatio;
+                      break;
+              }
+
+              // Ensure minimum size
+              if (newWidth < 20) {
+                  newWidth = 20;
+                  newHeight = newWidth / aspectRatio;
+                  if (handle.includes('w')) {
+                      newLeft = startLeft + (startWidth - newWidth);
+                  }
+              }
+              if (newHeight < 20) {
+                  newHeight = 20;
+                  newWidth = newHeight * aspectRatio;
+                  if (handle.includes('n')) {
+                      newTop = startTop + (startHeight - newHeight);
+                  }
+              }
+
+              // Prevent resizing beyond annotation layer boundaries
+              if (newLeft < 0) {
+                  newLeft = 0;
+                  newWidth = startWidth + (startLeft - newLeft);
+                  newHeight = newWidth / aspectRatio;
+              }
+              if (newTop < 0) {
+                  newTop = 0;
+                  newHeight = startHeight + (startTop - newTop);
+                  newWidth = newHeight * aspectRatio;
+              }
+              if (newLeft + newWidth > annotationLayerRect.width) {
+                  newWidth = annotationLayerRect.width - newLeft;
+                  newHeight = newWidth / aspectRatio;
+              }
+              if (newTop + newHeight > annotationLayerRect.height) {
+                  newHeight = annotationLayerRect.height - newTop;
+                  newWidth = newHeight * aspectRatio;
+              }
+
+              // Apply new dimensions and position
+              element.style.width = newWidth + 'px';
+              element.style.height = newHeight + 'px';
+              if (handle.includes('w')) {
+                  element.style.left = newLeft + 'px';
+              }
+              if (handle.includes('n')) {
+                  element.style.top = newTop + 'px';
+              }
+          };
+
+          const resizeEnd = () => {
+              isResizing = false;
+              document.removeEventListener('mousemove', resizeMove);
+              document.removeEventListener('mouseup', resizeEnd);
+              document.removeEventListener('touchmove', resizeMove);
+              document.removeEventListener('touchend', resizeEnd);
+          };
+
+          document.addEventListener('mousemove', resizeMove);
+          document.addEventListener('mouseup', resizeEnd);
+          document.addEventListener('touchmove', resizeMove, { passive: false });
+          document.addEventListener('touchend', resizeEnd);
+      }
+  });
+}
+
+
+
 function addRoundAnnotation(x, y, pageNumber) {
     const annotationLayerDiv = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
     if (!annotationLayerDiv) return;
@@ -1126,20 +1894,66 @@ imageFile.addEventListener("change", (e) => {
   }
 });
 
+const imageFileInput = document.getElementById("imageFile");
+const imageURLInput = document.getElementById("imageURL");
+const loadImageURLBtn = document.getElementById("loadImageURL");
+// const imagePreview = document.getElementById("imagePreview");
+// const uploadImageBtn = document.getElementById("uploadImage");
+// const imageModal = document.getElementById("imageModal");
+
+// let selectedImage = null;
+
+// Handle image file upload
+imageFileInput.addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            selectedImage = e.target.result;
+            imagePreview.src = selectedImage;
+            imagePreview.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Handle image URL input
+loadImageURLBtn.addEventListener("click", () => {
+    const url = imageURLInput.value.trim();
+    if (url) {
+        selectedImage = url;
+        imagePreview.src = selectedImage;
+        imagePreview.style.display = "block";
+    }
+});
+
 // Upload image button handler
 uploadImageBtn.addEventListener("click", () => {
-  if (selectedImage) {
-    const x = parseFloat(imageModal.dataset.clickX);
-    const y = parseFloat(imageModal.dataset.clickY);
-    const pageNumber = parseInt(imageModal.dataset.pageNumber);
-    
-    addImageAnnotation(x, y, selectedImage, pageNumber);
-    imageModal.style.display = "none";
-    currentTool = null;
-    imageTool.classList.remove("active");
-    selectedImage = null;
-  }
+    if (selectedImage) {
+        const x = parseFloat(imageModal.dataset.clickX);
+        const y = parseFloat(imageModal.dataset.clickY);
+        const pageNumber = parseInt(imageModal.dataset.pageNumber);
+        
+        addImageAnnotation(x, y, selectedImage, pageNumber);
+        imageModal.style.display = "none";
+        selectedImage = null;
+    }
 });
+
+// Upload image button handler
+// uploadImageBtn.addEventListener("click", () => {
+//   if (selectedImage) {
+//     const x = parseFloat(imageModal.dataset.clickX);
+//     const y = parseFloat(imageModal.dataset.clickY);
+//     const pageNumber = parseInt(imageModal.dataset.pageNumber);
+    
+//     addImageAnnotation(x, y, selectedImage, pageNumber);
+//     imageModal.style.display = "none";
+//     currentTool = null;
+//     imageTool.classList.remove("active");
+//     selectedImage = null;
+//   }
+// });
 
 // Close image modal
 closeImageBtn.addEventListener("click", () => {
@@ -1184,6 +1998,8 @@ window.addEventListener('DOMContentLoaded', () => {
     addSafeEventListener('undoBtn', 'click', undo);
     addSafeEventListener('redoBtn', 'click', redo);
     addSafeEventListener('savePDF', 'click', saveAnnotatedPDF);
+    addSafeEventListener('uploadPDF', 'click', uploadAnnotatedPDF);
+
 });
 
 // Clear all annotations function
@@ -1331,28 +2147,42 @@ signatureCtx.strokeStyle = "#000";
 signatureCtx.lineWidth = 2;
 signatureCtx.lineCap = "round";
 
-// Signature drawing handlers
+// let isSignatureDrawing = false;
+// let signatureX = 0, signatureY = 0;
+
+// Common function to get the position of touch/mouse event
+function getPosition(e) {
+  const rect = signatureCanvas.getBoundingClientRect();
+  if (e.touches) {
+    return {
+      x: e.touches[0].clientX - rect.left,
+      y: e.touches[0].clientY - rect.top,
+    };
+  } else {
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  }
+}
+
+// Mouse events
 signatureCanvas.addEventListener("mousedown", (e) => {
   isSignatureDrawing = true;
-  const rect = signatureCanvas.getBoundingClientRect();
-  signatureX = e.clientX - rect.left;
-  signatureY = e.clientY - rect.top;
+  const pos = getPosition(e);
+  signatureX = pos.x;
+  signatureY = pos.y;
 });
 
 signatureCanvas.addEventListener("mousemove", (e) => {
   if (!isSignatureDrawing) return;
-
-  const rect = signatureCanvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-
+  const pos = getPosition(e);
   signatureCtx.beginPath();
   signatureCtx.moveTo(signatureX, signatureY);
-  signatureCtx.lineTo(x, y);
+  signatureCtx.lineTo(pos.x, pos.y);
   signatureCtx.stroke();
-
-  signatureX = x;
-  signatureY = y;
+  signatureX = pos.x;
+  signatureY = pos.y;
 });
 
 signatureCanvas.addEventListener("mouseup", () => {
@@ -1363,6 +2193,34 @@ signatureCanvas.addEventListener("mouseleave", () => {
   isSignatureDrawing = false;
 });
 
+// Touch events for mobile
+signatureCanvas.addEventListener("touchstart", (e) => {
+  e.preventDefault(); // Prevent scrolling
+  isSignatureDrawing = true;
+  const pos = getPosition(e);
+  signatureX = pos.x;
+  signatureY = pos.y;
+});
+
+signatureCanvas.addEventListener("touchmove", (e) => {
+  e.preventDefault();
+  if (!isSignatureDrawing) return;
+  const pos = getPosition(e);
+  signatureCtx.beginPath();
+  signatureCtx.moveTo(signatureX, signatureY);
+  signatureCtx.lineTo(pos.x, pos.y);
+  signatureCtx.stroke();
+  signatureX = pos.x;
+  signatureY = pos.y;
+});
+
+signatureCanvas.addEventListener("touchend", () => {
+  isSignatureDrawing = false;
+});
+
+signatureCanvas.addEventListener("touchcancel", () => {
+  isSignatureDrawing = false;
+});
 // Clear signature canvas
 function clearSignature() {
   signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
@@ -1543,7 +2401,7 @@ document.querySelectorAll('.annotation-layer').forEach(annotationLayerDiv => {
 
 // Function to add image annotation
 function addImageAnnotation(x, y, imageSrc, pageNumber) {
-  alert("Image");
+  // alert("Image");
     console.log(imageSrc);
     
     // Create container
@@ -1556,7 +2414,18 @@ function addImageAnnotation(x, y, imageSrc, pageNumber) {
 
     // Create image element
     const img = document.createElement('img');
-    img.src = imageSrc;
+    if (imageSrc.startsWith("http")) {
+      // Convert remote image to data URL
+      fetchImageAsDataURL(imageSrc).then(dataUrl => {
+          img.src = dataUrl;
+          saveState();
+      }).catch(error => {
+          console.error("Error loading remote image:", error);
+      });
+  } else {
+      img.src = imageSrc; // Local file upload (already a data URL)
+  }
+    // img.src = imageSrc;
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.objectFit = 'contain';
@@ -1607,6 +2476,34 @@ function addImageAnnotation(x, y, imageSrc, pageNumber) {
     currentTool = null;
     imageTool.classList.remove("active");
     return container;
+}
+// function fetchImageAsDataURL(imageUrl) {
+//   const proxyUrl = "https://cors-anywhere.herokuapp.com/"; // CORS Proxy
+//   return new Promise((resolve, reject) => {
+//       fetch(proxyUrl + imageUrl)
+//           .then(response => response.blob())
+//           .then(blob => {
+//               const reader = new FileReader();
+//               reader.onloadend = () => resolve(reader.result);
+//               reader.onerror = reject;
+//               reader.readAsDataURL(blob);
+//           })
+//           .catch(reject);
+//   });
+// }
+
+function fetchImageAsDataURL(imageUrl) {
+  return new Promise((resolve, reject) => {
+      fetch(imageUrl)
+          .then(response => response.blob())
+          .then(blob => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+          })
+          .catch(reject);
+  });
 }
 
 // Function to add round annotation
@@ -1786,14 +2683,21 @@ async function saveAnnotatedPDF() {
             context.drawImage(canvas, 0, 0);
 
             // Use html2canvas to capture annotations
+            // const annotationCanvas = await html2canvas(annotationLayer, {
+            //     backgroundColor: null,
+            //     scale: 1,
+            //     logging: false,
+            //     width: canvas.width,
+            //     height: canvas.height
+            // });
+            const scaleFactor = window.devicePixelRatio || 1;
             const annotationCanvas = await html2canvas(annotationLayer, {
                 backgroundColor: null,
-                scale: 1,
-                logging: false,
-                width: canvas.width,
-                height: canvas.height
+                scale: scaleFactor,  // Ensure scaling matches high-res screens
+                width: annotationLayer.offsetWidth * scaleFactor,
+                height: annotationLayer.offsetHeight * scaleFactor,
             });
-
+            
             // Draw annotations on top of the PDF
             context.drawImage(annotationCanvas, 0, 0);
 
@@ -1802,18 +2706,22 @@ async function saveAnnotatedPDF() {
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
             const imgProps = pdf.getImageProperties(imgData);
+            console.log(pdfWidth,pdfHeight)
+            console.log(imgProps.width,imgProps.height)
             const ratio = Math.min(pdfWidth / imgProps.width, pdfHeight / imgProps.height);
+            console.log(ratio)
             const imgWidth = imgProps.width * ratio;
             const imgHeight = imgProps.height * ratio;
             const x = (pdfWidth - imgWidth) / 2;
             const y = (pdfHeight - imgHeight) / 2;
-
+console.log( x, y, imgWidth, imgHeight)
             pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
             console.log(`Added page ${pageNumber} to PDF`);
         }
-
+     
+ 
         // Save the PDF
-        const filename = 'annotated_document.pdf';
+        const filename ='annotated_document-'+CrtNo+'.pdf';
         pdf.save(filename);
         console.log("PDF saved successfully");
 
@@ -1831,8 +2739,246 @@ async function saveAnnotatedPDF() {
         saveBtn.disabled = false;
     }
 }
+/////////////////high quality
+async function uploadAnnotatedPDF() {
+  try {
+      console.log("Starting PDF export...");
+      if (!currentPDF) {
+          console.error("No PDF loaded");
+          alert("Please load a PDF first");
+          return;
+      }
+
+      // Show loading state
+      document.body.style.cursor = 'wait';
+      const saveBtn = document.getElementById('uploadPDF');
+      const originalText = saveBtn.innerHTML;
+      saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+      saveBtn.disabled = true;
+
+      // Create a new jsPDF instance
+      // const pdf = new window.jsPDF();
+      const pdf = new window.jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+          compress: true // Enables built-in compression
+      });
+      // Process each page
+      const pages = Array.from(pagesContainer.children);
+      console.log(`Processing ${pages.length} pages...`);
+
+      for (let i = 0; i < pages.length; i++) {
+          const pageWrapper = pages[i];
+          const pageNumber = parseInt(pageWrapper.getAttribute('data-page'));
+          console.log(`Processing page ${pageNumber}`);
+
+          // If not first page, add a new page to PDF
+          if (i > 0) {
+              pdf.addPage();
+          }
+
+          // Get the canvas and annotation layer for this page
+          const canvas = pageWrapper.querySelector('.pdf-canvas');
+          const annotationLayer = pageWrapper.querySelector('.annotation-layer');
+
+          // First, draw the PDF page
+          const pageCanvas = document.createElement('canvas');
+          const context = pageCanvas.getContext('2d');
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = canvas.height;
+
+          // Draw the PDF page from the original canvas
+          context.drawImage(canvas, 0, 0);
+
+          // Use html2canvas to capture annotations
+          const scaleFactor = window.devicePixelRatio || 1;
+          const annotationCanvas = await html2canvas(annotationLayer, {
+              backgroundColor: null,
+              scale: scaleFactor,  // Ensure scaling matches high-res screens
+              width: annotationLayer.offsetWidth * scaleFactor,
+              height: annotationLayer.offsetHeight * scaleFactor,
+          });
+          
+          // Draw annotations on top of the PDF
+          context.drawImage(annotationCanvas, 0, 0);
+
+          // Add the combined image to the PDF
+          const imgData = pageCanvas.toDataURL('image/png');
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const imgProps = pdf.getImageProperties(imgData);
+          const ratio = Math.min(pdfWidth / imgProps.width, pdfHeight / imgProps.height);
+          const imgWidth = imgProps.width * ratio;
+          const imgHeight = imgProps.height * ratio;
+          const x = (pdfWidth - imgWidth) / 2;
+          const y = (pdfHeight - imgHeight) / 2;
+
+          pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+          console.log(`Added page ${pageNumber} to PDF`);
+      }
+
+      // Convert PDF to Blob (file data)
+      const pdfBlob = pdf.output('blob');
+
+      // Create FormData to send with the request
+      const formData = new FormData();
+      formData.append('recordId', id); // Your record ID
+      
+      formData.append('filePath', pdfBlob, 'annotated_document-'+CrtNo+'.pdf'); // Append PDF Blob
+
+      // Upload the file to the server
+      const response = await fetch('https://mcb.medicalcertificate.in/upload', {
+          method: 'POST',
+          body: formData,
+      });
+
+      // Check if the upload was successful
+      if (response.ok) {
+          console.log("PDF uploaded successfully");
+          alert("PDF uploaded successfully");
+      } else {
+          console.error("Error uploading PDF");
+          alert("Error uploading PDF. Please try again.");
+      }
+
+      // Reset button state
+      saveBtn.innerHTML = originalText;
+      saveBtn.disabled = false;
+      document.body.style.cursor = 'default';
+
+  } catch (error) {
+      console.error("Error saving or uploading PDF:", error);
+      alert("Error saving or uploading PDF. Please try again.");
+      document.body.style.cursor = 'default';
+      const saveBtn = document.getElementById('uploadPDF');
+      saveBtn.innerHTML = '<i class="fas fa-upload"></i>';
+      saveBtn.disabled = false;
+  }
+}
+/////////////////////----------low quality
+// async function uploadAnnotatedPDF() {
+//   try {
+//       console.log("Starting PDF export...");
+//       if (!currentPDF) {
+//           console.error("No PDF loaded");
+//           alert("Please load a PDF first");
+//           return;
+//       }
+
+//       // Show loading state
+//       document.body.style.cursor = 'wait';
+//       const saveBtn = document.getElementById('uploadPDF');
+//       const originalText = saveBtn.innerHTML;
+//       saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+//       saveBtn.disabled = true;
+
+//       // Create a new jsPDF instance with compression enabled
+//       const pdf = new window.jsPDF({
+//           orientation: 'portrait',
+//           unit: 'mm',
+//           format: 'a4',
+//           compress: true // Enables built-in compression
+//       });
+
+//       // Process each page
+//       const pages = Array.from(pagesContainer.children);
+//       console.log(`Processing ${pages.length} pages...`);
+
+//       for (let i = 0; i < pages.length; i++) {
+//           const pageWrapper = pages[i];
+//           const pageNumber = parseInt(pageWrapper.getAttribute('data-page'));
+//           console.log(`Processing page ${pageNumber}`);
+
+//           if (i > 0) {
+//               pdf.addPage();
+//           }
+
+//           // Get the canvas and annotation layer for this page
+//           const canvas = pageWrapper.querySelector('.pdf-canvas');
+//           const annotationLayer = pageWrapper.querySelector('.annotation-layer');
+
+//           // Create a new canvas to combine PDF content and annotations
+//           const pageCanvas = document.createElement('canvas');
+//           const context = pageCanvas.getContext('2d');
+          
+//           // Reduce canvas size to match PDF dimensions
+//           const scale = 0.5; // Adjust scale factor for better compression
+//           pageCanvas.width = canvas.width * scale;
+//           pageCanvas.height = canvas.height * scale;
+//           context.scale(scale, scale);
+
+//           // Draw the PDF page from the original canvas
+//           context.drawImage(canvas, 0, 0);
+
+//           // Capture annotations using html2canvas with reduced scale
+//           const annotationCanvas = await html2canvas(annotationLayer, {
+//               backgroundColor: null,
+//               scale: 1, // Reduce scale to avoid oversized images
+//           });
+
+//           // Draw annotations on top of the PDF page
+//           context.drawImage(annotationCanvas, 0, 0, annotationCanvas.width * scale, annotationCanvas.height * scale);
+
+//           // Convert the combined image to JPEG format with compression
+//           const imgData = pageCanvas.toDataURL('image/jpeg', 0.7); // JPEG with 70% quality
+
+//           // Calculate dimensions for PDF placement
+//           const pdfWidth = pdf.internal.pageSize.getWidth();
+//           const pdfHeight = pdf.internal.pageSize.getHeight();
+//           const imgProps = pdf.getImageProperties(imgData);
+//           const ratio = Math.min(pdfWidth / imgProps.width, pdfHeight / imgProps.height);
+//           const imgWidth = imgProps.width * ratio;
+//           const imgHeight = imgProps.height * ratio;
+//           const x = (pdfWidth - imgWidth) / 2;
+//           const y = (pdfHeight - imgHeight) / 2;
+
+//           // Add optimized image to PDF
+//           pdf.addImage(imgData, 'JPEG', x, y, imgWidth, imgHeight);
+//           console.log(`Added page ${pageNumber} to PDF`);
+//       }
+
+//       // Convert PDF to Blob (file data)
+//       const pdfBlob = pdf.output('blob');
+
+//       // Create FormData to send with the request
+//       const formData = new FormData();
+//       formData.append('recordId', id); // Your record ID
+//       formData.append('filePath', pdfBlob, `annotated_document-${CrtNo}.pdf`); // Append PDF Blob
+
+//       // Upload the file to the server
+//       const response = await fetch('https://mcb.medicalcertificate.in/upload', {
+//           method: 'POST',
+//           body: formData,
+//       });
+
+//       // Check if the upload was successful
+//       if (response.ok) {
+//           console.log("PDF uploaded successfully");
+//           alert("PDF uploaded successfully");
+//       } else {
+//           console.error("Error uploading PDF");
+//           alert("Error uploading PDF. Please try again.");
+//       }
+
+//       // Reset button state
+//       saveBtn.innerHTML = originalText;
+//       saveBtn.disabled = false;
+//       document.body.style.cursor = 'default';
+
+//   } catch (error) {
+//       console.error("Error saving or uploading PDF:", error);
+//       alert("Error saving or uploading PDF. Please try again.");
+//       document.body.style.cursor = 'default';
+//       const saveBtn = document.getElementById('uploadPDF');
+//       saveBtn.innerHTML = '<i class="fas fa-upload"></i>';
+//       saveBtn.disabled = false;
+//   }
+// }
+
 
 // Add event listener for save button
+uploadPDFBtn.addEventListener('click', uploadAnnotatedPDF);
 savePDFBtn.addEventListener('click', saveAnnotatedPDF);
 
 // Signature modal handlers
@@ -1852,68 +2998,273 @@ window.addEventListener("click", (e) => {
 
 });
 
-// Preview PDF button handler
-previewPDFBtn.addEventListener('click', async () => {
-    try {
-        showNotification("Generating preview...");
-        previewModal.style.display = "block";
-        previewContainer.innerHTML = ''; // Clear previous preview
-        previewContainer.style.transform = `scale(1)`;;
+// // Preview PDF button handler
+// previewPDFBtn.addEventListener('click', async () => {
+//     try {
+//         showNotification("Generating preview...");
+//         previewModal.style.display = "block";
+//         previewContainer.innerHTML = ''; // Clear previous preview
+//         previewContainer.style.transform = `scale(1)`;;
         
-        // Get all pages and their content
-        const pages = document.querySelectorAll('.page-wrapper');
-        console.log(pages);
+//         // Get all pages and their content
+//         const pages = document.querySelectorAll('.page-wrapper');
+//         console.log(pages);
         
-        for (let i = 0; i < pages.length; i++) {
-            const originalPage = pages[i];
-            const pageNumber = i + 1;
+//         for (let i = 0; i < pages.length; i++) {
+//             const originalPage = pages[i];
+//             const pageNumber = i + 1;
             
-            // Create preview page container
-            const previewPage = document.createElement('div');
-            previewPage.className = 'page';
-            previewPage.style.width = originalPage.style.width;
-            previewPage.style.height = originalPage.style.height;
+//             // Create preview page container
+//             const previewPage = document.createElement('div');
+//             previewPage.className = 'page';
+//             previewPage.style.width = originalPage.style.width;
+//             previewPage.style.height = originalPage.style.height;
             
-            // Clone the canvas (PDF content)
-            const originalCanvas = originalPage.querySelector('canvas');
-            if (originalCanvas) {
-                const canvas = document.createElement('canvas');
-                canvas.width = originalCanvas.width;
-                canvas.height = originalCanvas.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(originalCanvas, 0, 0);
-                previewPage.appendChild(canvas);
-            }
+//             // Clone the canvas (PDF content)
+//             const originalCanvas = originalPage.querySelector('canvas');
+//             if (originalCanvas) {
+//                 const canvas = document.createElement('canvas');
+//                 canvas.width = originalCanvas.width;
+//                 canvas.height = originalCanvas.height;
+//                 const ctx = canvas.getContext('2d');
+//                 ctx.drawImage(originalCanvas, 0, 0);
+//                 previewPage.appendChild(canvas);
+//             }
             
-            // Clone annotation layer
-            const originalAnnotationLayer = originalPage.querySelector('.annotation-layer');
-            if (originalAnnotationLayer) {
-                const annotationLayer = originalAnnotationLayer.cloneNode(true);
+//             // Clone annotation layer
+//             const originalAnnotationLayer = originalPage.querySelector('.annotation-layer');
+//             if (originalAnnotationLayer) {
+//                 const annotationLayer = originalAnnotationLayer.cloneNode(true);
                 
-                // Remove interactive elements from annotations
-                annotationLayer.querySelectorAll('.delete-btn, .rotate-btn, .resizer').forEach(el => {
-                    el.remove();
-                });
+//                 // Remove interactive elements from annotations
+//                 annotationLayer.querySelectorAll('.delete-btn, .rotate-btn, .resizer').forEach(el => {
+//                     el.remove();
+//                 });
                 
-                // Make annotations non-interactive
-                annotationLayer.querySelectorAll('.annotation-container').forEach(annotation => {
-                    annotation.style.cursor = 'default';
-                    annotation.style.pointerEvents = 'none';
-                });
+//                 // Make annotations non-interactive
+//                 annotationLayer.querySelectorAll('.annotation-container').forEach(annotation => {
+//                     annotation.style.cursor = 'default';
+//                     annotation.style.pointerEvents = 'none';
+//                 });
                 
-                previewPage.appendChild(annotationLayer);
-            }
+//                 previewPage.appendChild(annotationLayer);
+//             }
             
-            previewContainer.appendChild(previewPage);
-        }
+//             previewContainer.appendChild(previewPage);
+//         }
         
        
         
-    } catch (error) {
-        console.error('Preview generation failed:', error);
-        showNotification("Failed to generate preview", 3000);
-    }
+//     } catch (error) {
+//         console.error('Preview generation failed:', error);
+//         showNotification("Failed to generate preview", 3000);
+//     }
+// });
+// Function to copy computed styles
+// function copyComputedStyles(sourceElement, targetElement) {
+//   const computedStyle = window.getComputedStyle(sourceElement);
+//   for (let i = 0; i < computedStyle.length; i++) {
+//       const prop = computedStyle[i];
+//       targetElement.style[prop] = computedStyle.getPropertyValue(prop);
+//   }
+// }
+
+// // Preview PDF button handler
+// previewPDFBtn.addEventListener('click', async () => {
+//   try {
+//       showNotification("Generating preview...");
+//       previewModal.style.display = "block";
+//       previewContainer.innerHTML = ''; // Clear previous preview
+//       previewContainer.style.transform = `scale(1)`;
+
+//       // Get all pages and their content
+//       const pages = Array.from(document.querySelectorAll('.page-wrapper'));
+
+//       console.log(`Processing ${pages.length} pages for preview...`);
+
+//       for (let i = 0; i < pages.length; i++) {
+//           const pageWrapper = pages[i];
+
+//           // Create preview page container
+//           const previewPage = document.createElement('div');
+//           previewPage.className = 'page';
+//           previewPage.style.width = pageWrapper.style.width;
+//           previewPage.style.height = pageWrapper.style.height;
+//           previewPage.style.position = 'relative'; // Ensure correct positioning context
+
+//           // Clone the canvas (PDF content)
+//           const originalCanvas = pageWrapper.querySelector('.pdf-canvas');
+//           if (originalCanvas) {
+//               const canvas = document.createElement('canvas');
+//               canvas.width = originalCanvas.width;
+//               canvas.height = originalCanvas.height;
+//               const ctx = canvas.getContext('2d');
+//               ctx.drawImage(originalCanvas, 0, 0);
+//               previewPage.appendChild(canvas);
+//           }
+
+//           // Clone annotation layer using html2canvas
+//           const originalAnnotationLayer = pageWrapper.querySelector('.annotation-layer');
+//           if (originalAnnotationLayer) {
+//               const scaleFactor = window.devicePixelRatio || 1;
+//               const annotationCanvas = await html2canvas(originalAnnotationLayer, {
+//                   backgroundColor: null,
+//                   scale: scaleFactor,
+//                   width: originalAnnotationLayer.offsetWidth * scaleFactor,
+//                   height: originalAnnotationLayer.offsetHeight * scaleFactor,
+//               });
+
+//               // Create an annotation image element
+//               const annotationImg = document.createElement('img');
+//               annotationImg.src = annotationCanvas.toDataURL('image/png');
+//               annotationImg.style.position = 'absolute';
+//               annotationImg.style.top = '0';
+//               annotationImg.style.left = '0';
+//               annotationImg.style.width = '100%';
+//               annotationImg.style.height = '100%';
+
+//               previewPage.appendChild(annotationImg);
+//           }
+
+//           previewContainer.appendChild(previewPage);
+//           console.log(`Preview page ${i + 1} generated.`);
+//       }
+
+//   } catch (error) {
+//       console.error('Preview generation failed:', error);
+//       showNotification("Failed to generate preview", 3000);
+//   }
+// });
+// Preview PDF button handler
+// previewPDFBtn.addEventListener('click', async () => {
+//   try {
+//       showNotification("Generating preview...");
+//       previewModal.style.display = "block";
+//       previewContainer.innerHTML = ''; // Clear previous preview
+//       previewContainer.style.transform = `scale(1)`;;
+      
+//       // Get all pages and their content
+//       const pages = document.querySelectorAll('.page-wrapper');
+//       console.log(pages);
+      
+//       for (let i = 0; i < pages.length; i++) {
+//           const originalPage = pages[i];
+//           const pageNumber = i + 1;
+          
+//           // Create preview page container
+//           const previewPage = document.createElement('div');
+//           previewPage.className = 'page';
+//           previewPage.style.width = originalPage.style.width;
+//           previewPage.style.height = originalPage.style.height;
+          
+//           // Clone the canvas (PDF content)
+//           const originalCanvas = originalPage.querySelector('canvas');
+//           if (originalCanvas) {
+//               const canvas = document.createElement('canvas');
+//               canvas.width = originalCanvas.width;
+//               canvas.height = originalCanvas.height;
+//               const ctx = canvas.getContext('2d');
+//               ctx.drawImage(originalCanvas, 0, 0);
+//               previewPage.appendChild(canvas);
+//           }
+          
+//           // Clone annotation layer
+//           const originalAnnotationLayer = originalPage.querySelector('.annotation-layer');
+//           if (originalAnnotationLayer) {
+//               const annotationLayer = originalAnnotationLayer.cloneNode(true);
+              
+//               // Remove interactive elements from annotations
+//               annotationLayer.querySelectorAll('.delete-btn, .rotate-btn, .resizer').forEach(el => {
+//                   el.remove();
+//               });
+              
+//               // Make annotations non-interactive
+//               annotationLayer.querySelectorAll('.annotation-container').forEach(annotation => {
+//                   annotation.style.cursor = 'default';
+//                   annotation.style.pointerEvents = 'none';
+//               });
+              
+//               previewPage.appendChild(annotationLayer);
+//           }
+          
+//           previewContainer.appendChild(previewPage);
+//       }
+      
+     
+      
+//   } catch (error) {
+//       console.error('Preview generation failed:', error);
+//       showNotification("Failed to generate preview", 3000);
+//   }
+// });
+// Preview PDF button handler
+previewPDFBtn.addEventListener('click', async () => {
+  try {
+      showNotification("Generating preview...",1000);
+      previewModal.style.display = "block";
+      previewContainer.innerHTML = ''; // Clear previous preview
+      previewContainer.style.transform = `scale(1)`;
+
+      if (!currentPDF) {
+          console.error('No PDF loaded');
+          showNotification("No PDF loaded", 3000);
+          return;
+      }
+
+      const numPages = currentPDF.numPages;
+
+      for (let pageNumber = 1; pageNumber <= numPages; pageNumber++) {
+          const page = await currentPDF.getPage(pageNumber);
+          const scale = await handleResponsivePDF();
+          const viewport = page.getViewport({ scale });
+
+          const dpr = window.devicePixelRatio || 1;
+
+          // Create preview page container
+          const previewPage = document.createElement('div');
+          previewPage.className = 'page';
+          previewPage.style.width = `${viewport.width}px`;
+          previewPage.style.height = `${viewport.height}px`;
+
+          // Create canvas for preview
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.floor(viewport.width * dpr);
+          canvas.height = Math.floor(viewport.height * dpr);
+          canvas.style.width = `${viewport.width}px`;
+          canvas.style.height = `${viewport.height}px`;
+          const ctx = canvas.getContext('2d', { alpha: false });
+          ctx.scale(dpr, dpr);
+
+          // Render PDF page onto the preview canvas
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          previewPage.appendChild(canvas);
+
+          // Clone and clean up annotation layer
+          const originalAnnotationLayer = document.querySelector(`.annotation-layer[data-page="${pageNumber}"]`);
+          if (originalAnnotationLayer) {
+              const annotationLayer = originalAnnotationLayer.cloneNode(true);
+
+              // Remove interactive elements
+              annotationLayer.querySelectorAll('.delete-btn, .rotate-btn, .resizer').forEach(el => el.remove());
+
+              // Make annotations non-interactive
+              annotationLayer.querySelectorAll('.annotation-container').forEach(annotation => {
+                  annotation.style.cursor = 'default';
+                  annotation.style.pointerEvents = 'none';
+              });
+
+              previewPage.appendChild(annotationLayer);
+          }
+
+          previewContainer.appendChild(previewPage);
+      }
+
+  } catch (error) {
+      console.error('Preview generation failed:', error);
+      showNotification("Failed to generate preview", 3000);
+  }
 });
+
 
 // Close preview modal
 closePreviewBtn.addEventListener('click', () => {
@@ -1983,10 +3334,18 @@ window.addEventListener('resize', () => {
 // Function to position the format toolbar near text annotation
 function positionFormatToolbar(textElement) {
   const rect = textElement.getBoundingClientRect();
+  if (window.matchMedia("(max-width: 768px)").matches) {
+    console.log("Screen width is 768px or less");
+    textFormatToolbar.style.left = `10px`;
+  textFormatToolbar.style.top =`92px`;
+} else {
+    console.log("Screen width is greater than 768px");
+
   textFormatToolbar.style.left = `${rect.left}px`;
   textFormatToolbar.style.top = `${
     rect.top - textFormatToolbar.offsetHeight - 10
   }px`;
+}
 }
 
 // Function to update toolbar state based on current text styles
